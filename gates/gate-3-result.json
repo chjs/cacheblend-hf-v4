@@ -1,0 +1,58 @@
+{
+  "phase": "3",
+  "sub_phase": null,
+  "overall": "PASS",
+  "n_pass": 7,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "3.1",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 1.04s =============================="
+    },
+    {
+      "id": "3.2",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.50s =============================="
+    },
+    {
+      "id": "3.3",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.52s =============================="
+    },
+    {
+      "id": "3.4",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.52s =============================="
+    },
+    {
+      "id": "3.5",
+      "description": "",
+      "check_type": "verify_phase",
+      "result": "PASS",
+      "detail": "verify_phase rc=0"
+    },
+    {
+      "id": "3.6",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $0.41 (cap: $2.50)"
+    },
+    {
+      "id": "3.7",
+      "description": "",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/docs/lmcache-analysis.md"
+    }
+  ]
+}
