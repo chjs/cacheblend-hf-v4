@@ -1,0 +1,15 @@
+{
+  "L_X": 12,
+  "L_A": 20,
+  "total_seq": 32,
+  "layers_tested": [0, 1, 5, 15, 31],
+  "results": [
+    {"layer": 0,  "diff_vs_fused_RoPE": 0.0, "diff_vs_local_RoPE": 13.921875,    "diff_chunk0_baseline": 0.0, "verdict": "A_fused"},
+    {"layer": 1,  "diff_vs_fused_RoPE": 0.0, "diff_vs_local_RoPE": 11.30859375,  "diff_chunk0_baseline": 0.0, "verdict": "A_fused"},
+    {"layer": 5,  "diff_vs_fused_RoPE": 0.0, "diff_vs_local_RoPE": 8.8828125,    "diff_chunk0_baseline": 0.0, "verdict": "A_fused"},
+    {"layer": 15, "diff_vs_fused_RoPE": 0.0, "diff_vs_local_RoPE": 6.015625,     "diff_chunk0_baseline": 0.0, "verdict": "A_fused"},
+    {"layer": 31, "diff_vs_fused_RoPE": 0.0, "diff_vs_local_RoPE": 8.43359375,   "diff_chunk0_baseline": 0.0, "verdict": "A_fused"}
+  ],
+  "all_verdicts": ["A_fused"],
+  "interpretation": "fuse_full_reuse hook injection + HF apply_rotary_pos_emb auto re-applies RoPE at fused positions. paper §4 compliant. User concern resolved (no fix needed)."
+}
