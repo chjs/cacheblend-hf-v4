@@ -1,0 +1,10 @@
+{
+  "phase": "7",
+  "description": "Llama Evaluation",
+  "sub_phases": {
+    "7a": {"conditions": [{"id": "7a.1", "check_type": "file_exists", "path": "reports/phase-7a-attachments/results.jsonl"}, {"id": "7a.2", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 13.0}]},
+    "7b": {"conditions": [{"id": "7b.1", "check_type": "file_exists", "path": "reports/phase-7b-attachments/results.jsonl"}, {"id": "7b.2", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 17.0}]},
+    "7c": {"conditions": [{"id": "7c.1", "check_type": "metric", "source": "reports/phase-7c-attachments/summary.json", "key": "ci_low_cb_vs_reuse", "op": ">", "value": 0.0}, {"id": "7c.2", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 20.0}]},
+    "7d": {"conditions": [{"id": "7d.1", "check_type": "file_exists", "path": "reports/phase-7d-attachments/results.jsonl"}, {"id": "7d.2", "check_type": "metric", "source": "reports/phase-7d-attachments/summary.json", "key": "ci_low_cb_vs_reuse", "op": ">", "value": 0.0}, {"id": "7d.3", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 25.0}]}
+  }
+}

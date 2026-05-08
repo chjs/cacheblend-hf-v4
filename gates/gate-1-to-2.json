@@ -1,0 +1,35 @@
+{
+  "phase": "1",
+  "description": "Layerwise Forward",
+  "tolerance_category": "SAME_SHAPE",
+  "conditions": [
+    {
+      "id": "1.1",
+      "check_type": "pytest",
+      "path": "tests/test_layerwise.py::test_layerwise_matches_standard",
+      "markers": "requires_model and gpu",
+      "description": "layerwise vs standard logits SAME_SHAPE"
+    },
+    {
+      "id": "1.2",
+      "check_type": "pytest",
+      "path": "tests/test_layerwise.py::test_kv_extraction",
+      "markers": "requires_model and gpu",
+      "description": "pre-RoPE K capture per layer"
+    },
+    {
+      "id": "1.3",
+      "check_type": "verify_phase",
+      "phase": "1",
+      "description": "verify_phase --phase 1"
+    },
+    {
+      "id": "1.4",
+      "check_type": "cost_check",
+      "source": "reports/cost-tracker.json",
+      "key": "cumulative_usd",
+      "max": 1.0,
+      "description": "Phase 1 cost cap $1"
+    }
+  ]
+}

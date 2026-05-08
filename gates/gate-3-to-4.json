@@ -1,0 +1,14 @@
+{
+  "phase": "3",
+  "description": "Selective KV Recompute",
+  "tolerance_category": "IDENTICAL_PATH for boundaries",
+  "conditions": [
+    {"id": "3.1", "check_type": "pytest", "path": "tests/test_selective.py::test_ratio_0_eq_full_reuse", "markers": "requires_model and gpu"},
+    {"id": "3.2", "check_type": "pytest", "path": "tests/test_selective.py::test_ratio_1_eq_full_recompute", "markers": "requires_model and gpu"},
+    {"id": "3.3", "check_type": "pytest", "path": "tests/test_selective.py::test_selective_reduces_divergence", "markers": "requires_model and gpu"},
+    {"id": "3.4", "check_type": "pytest", "path": "tests/test_selective.py::test_mask_is_standard_causal", "markers": "requires_model and gpu"},
+    {"id": "3.5", "check_type": "verify_phase", "phase": "3"},
+    {"id": "3.6", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 2.5},
+    {"id": "3.7", "check_type": "file_exists", "path": "docs/lmcache-analysis.md"}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "phase": "5",
+  "description": "Dataset Pipeline (mydata)",
+  "conditions": [
+    {"id": "5.1", "check_type": "file_exists", "path": "external/mydata/cacheblend_fig12/prompts.jsonl"},
+    {"id": "5.2", "check_type": "command", "cmd": "PYTHONPATH=external/mydata/cacheblend_fig12 python -c 'from harness.runner import CacheBlendRunner'", "expect_rc": 0},
+    {"id": "5.3", "check_type": "command", "cmd": "python -c 'from cacheblend import FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner, GradualV4Runner; [r() for r in [FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner, GradualV4Runner]]'", "expect_rc": 0},
+    {"id": "5.4", "check_type": "pytest", "path": "tests/test_runners.py", "markers": "not gpu"},
+    {"id": "5.5", "check_type": "pytest", "path": "tests/test_bootstrap.py", "markers": "not gpu"},
+    {"id": "5.6", "check_type": "file_exists", "path": "benchmarks/results/figure12_like/musique_dryrun.jsonl"},
+    {"id": "5.7", "check_type": "verify_phase", "phase": "5"}
+  ]
+}

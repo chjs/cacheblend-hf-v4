@@ -1,0 +1,13 @@
+{
+  "phase": "2",
+  "description": "KV Storage & Full Reuse",
+  "tolerance_category": "MIXED_SHAPE for cross-shape, IDENTICAL_PATH for sanity",
+  "conditions": [
+    {"id": "2.1", "check_type": "pytest", "path": "tests/test_kv_reuse.py::test_rope_shift_correctness", "markers": "requires_model and gpu"},
+    {"id": "2.2", "check_type": "pytest", "path": "tests/test_kv_reuse.py::test_full_recompute_sanity", "markers": "requires_model and gpu"},
+    {"id": "2.3", "check_type": "pytest", "path": "tests/test_kv_reuse.py::test_full_reuse_single_prefix", "markers": "requires_model and gpu"},
+    {"id": "2.4", "check_type": "pytest", "path": "tests/test_kv_reuse.py::test_full_reuse_multi_chunk_divergence", "markers": "requires_model and gpu"},
+    {"id": "2.5", "check_type": "verify_phase", "phase": "2"},
+    {"id": "2.6", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 1.5}
+  ]
+}

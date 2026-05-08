@@ -1,0 +1,11 @@
+{
+  "phase": "4",
+  "description": "Pipelining & Prefix Cache",
+  "conditions": [
+    {"id": "4.1", "check_type": "pytest", "path": "tests/test_pipeline.py::test_pipelined_eq_unpipelined", "markers": "requires_model and gpu"},
+    {"id": "4.2", "check_type": "pytest", "path": "tests/test_pipeline.py::test_prefix_cache_eq_full_recompute", "markers": "requires_model and gpu"},
+    {"id": "4.3", "check_type": "pytest", "path": "tests/test_pipeline.py::test_loading_controller_monotone", "markers": "not gpu"},
+    {"id": "4.4", "check_type": "verify_phase", "phase": "4"},
+    {"id": "4.5", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 3.0}
+  ]
+}

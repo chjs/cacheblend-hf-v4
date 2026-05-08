@@ -1,0 +1,114 @@
+{
+  "phase": "0",
+  "sub_phase": null,
+  "overall": "PASS",
+  "n_pass": 15,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "0.1",
+      "description": "import cacheblend works",
+      "check_type": "import",
+      "result": "PASS",
+      "detail": "import cacheblend OK"
+    },
+    {
+      "id": "0.2",
+      "description": "send_report dry-run returns 0",
+      "check_type": "command",
+      "result": "PASS",
+      "detail": "rc=0, stdout[:100]='[DRY RUN] Would send phase 0 report\\n  Report path: /Users/chjs/Research/cacheblend-hf-v4/reports/pha'"
+    },
+    {
+      "id": "0.3",
+      "description": "Mac venv ↔ requirements.txt parity",
+      "check_type": "command",
+      "result": "PASS",
+      "detail": "rc=0, stdout[:100]='=== Mac/Pod 패키지 정합 체크 (8개 핵심 패키지) ===\\n\\nPackage              Local venv           requirements.txt   '"
+    },
+    {
+      "id": "0.4a",
+      "description": "model.py stub exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/model.py"
+    },
+    {
+      "id": "0.4b",
+      "description": "kv_store.py stub exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/kv_store.py"
+    },
+    {
+      "id": "0.4c",
+      "description": "fusor.py stub exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/fusor.py"
+    },
+    {
+      "id": "0.4d",
+      "description": "runners.py stub exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/runners.py"
+    },
+    {
+      "id": "0.4e",
+      "description": "gradual.py stub exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/gradual.py"
+    },
+    {
+      "id": "0.4f",
+      "description": "tolerance.py exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/src/cacheblend/tolerance.py"
+    },
+    {
+      "id": "0.4g",
+      "description": "test_smoke.py exists",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/tests/test_smoke.py"
+    },
+    {
+      "id": "0.5",
+      "description": "LMCache cloned",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/external/LMCache/.git"
+    },
+    {
+      "id": "0.6",
+      "description": "mydata prompts.jsonl exists (SHA verified by Phase 0 task)",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/external/mydata/cacheblend_fig12/prompts.jsonl"
+    },
+    {
+      "id": "0.7",
+      "description": "smoke tests pass",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 11 passed in 2.49s =============================="
+    },
+    {
+      "id": "0.8",
+      "description": "LMCache analysis doc written",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/docs/lmcache-analysis.md"
+    },
+    {
+      "id": "0.9",
+      "description": "Figure 12-like disclosure doc written",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/docs/figure12_like_disclosure.md"
+    }
+  ]
+}

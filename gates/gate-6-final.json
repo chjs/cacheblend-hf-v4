@@ -1,0 +1,32 @@
+{
+  "phase": "6",
+  "description": "Mistral Evaluation",
+  "sub_phases": {
+    "6a": {
+      "description": "Musique 20 smoke",
+      "conditions": [
+        {"id": "6a.1", "check_type": "file_exists", "path": "reports/phase-6a-attachments/results.jsonl"},
+        {"id": "6a.2", "check_type": "metric", "source": "reports/phase-6a-attachments/summary.json", "key": "FullRecomputeRunner.f1_mean", "op": ">=", "value": 0.10, "description": "F1 sanity"},
+        {"id": "6a.3", "check_type": "metric", "source": "reports/phase-6a-attachments/summary.json", "key": "f1_diff_cb_vs_full", "op": ">=", "value": -0.10, "description": "F1 catastrophic guard"},
+        {"id": "6a.4", "check_type": "verify_phase", "phase": "6a"},
+        {"id": "6a.5", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 4.0}
+      ]
+    },
+    "6b": {
+      "description": "Musique 50",
+      "conditions": [
+        {"id": "6b.1", "check_type": "metric", "source": "reports/phase-6b-attachments/summary.json", "key": "f1_diff_cb_vs_full", "op": ">=", "value": -0.05},
+        {"id": "6b.2", "check_type": "metric", "source": "reports/phase-6b-attachments/summary.json", "key": "f1_diff_cb_vs_reuse", "op": ">", "value": 0.0},
+        {"id": "6b.3", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 7.0}
+      ]
+    },
+    "6c": {
+      "description": "Musique 200 (full)",
+      "conditions": [
+        {"id": "6c.1", "check_type": "metric", "source": "reports/phase-6c-attachments/summary.json", "key": "ci_low_cb_vs_reuse", "op": ">", "value": 0.0, "description": "paired bootstrap CI [L28]"},
+        {"id": "6c.2", "check_type": "metric", "source": "reports/phase-6c-attachments/summary.json", "key": "f1_diff_cb_vs_full", "op": ">=", "value": -0.05},
+        {"id": "6c.3", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 10.0}
+      ]
+    }
+  }
+}

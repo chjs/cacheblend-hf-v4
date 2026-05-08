@@ -1,0 +1,41 @@
+{
+  "phase": "8",
+  "description": "Gradual Filtering Discovery",
+  "interactive": true,
+  "sub_phases": {
+    "8-step1": {
+      "description": "Layer profiling (auto, ~$3)",
+      "conditions": [
+        {"id": "8.s1.1", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/profile_data.json"},
+        {"id": "8.s1.2", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/mistral_top15mass.png"},
+        {"id": "8.s1.3", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/mistral_spearman.png"},
+        {"id": "8.s1.4", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/mistral_infogain.png"},
+        {"id": "8.s1.5", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/llama8b_top15mass.png"},
+        {"id": "8.s1.6", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/llama8b_spearman.png"},
+        {"id": "8.s1.7", "check_type": "file_exists", "path": "reports/phase-8-step1-attachments/llama8b_infogain.png"},
+        {"id": "8.s1.8", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 33.0}
+      ]
+    },
+    "8-step2": {
+      "description": "Schedule generation (CPU)",
+      "conditions": [
+        {"id": "8.s2.1", "check_type": "file_exists", "path": "reports/phase-8-step2-attachments/schedules.json"},
+        {"id": "8.s2.2", "check_type": "verify_phase", "phase": "8-step2"}
+      ]
+    },
+    "8-step3": {
+      "description": "F1 sweep (GPU, ~$15)",
+      "conditions": [
+        {"id": "8.s3.1", "check_type": "file_exists", "path": "reports/phase-8-step3-attachments/heatmap.png"},
+        {"id": "8.s3.2", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 48.0}
+      ]
+    },
+    "8-step4": {
+      "description": "LMCache baseline comparison + final report",
+      "conditions": [
+        {"id": "8.s4.1", "check_type": "file_exists", "path": "reports/phase-8-final-report.md"},
+        {"id": "8.s4.2", "check_type": "cost_check", "source": "reports/cost-tracker.json", "key": "cumulative_usd", "max": 55.0}
+      ]
+    }
+  }
+}

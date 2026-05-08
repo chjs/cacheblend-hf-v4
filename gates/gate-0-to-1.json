@@ -1,0 +1,99 @@
+{
+  "phase": "0",
+  "description": "Setup & Environment Parity",
+  "conditions": [
+    {
+      "id": "0.1",
+      "check_type": "import",
+      "module": "cacheblend",
+      "description": "import cacheblend works"
+    },
+    {
+      "id": "0.2",
+      "check_type": "command",
+      "cmd": "python scripts/send_report.py --phase 0 --dry-run",
+      "expect_rc": 0,
+      "description": "send_report dry-run returns 0"
+    },
+    {
+      "id": "0.3",
+      "check_type": "command",
+      "cmd": "bash scripts/diff_env.sh",
+      "expect_rc": 0,
+      "description": "Mac venv ↔ requirements.txt parity"
+    },
+    {
+      "id": "0.4a",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/model.py",
+      "description": "model.py stub exists"
+    },
+    {
+      "id": "0.4b",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/kv_store.py",
+      "description": "kv_store.py stub exists"
+    },
+    {
+      "id": "0.4c",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/fusor.py",
+      "description": "fusor.py stub exists"
+    },
+    {
+      "id": "0.4d",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/runners.py",
+      "description": "runners.py stub exists"
+    },
+    {
+      "id": "0.4e",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/gradual.py",
+      "description": "gradual.py stub exists"
+    },
+    {
+      "id": "0.4f",
+      "check_type": "file_exists",
+      "path": "src/cacheblend/tolerance.py",
+      "description": "tolerance.py exists"
+    },
+    {
+      "id": "0.4g",
+      "check_type": "file_exists",
+      "path": "tests/test_smoke.py",
+      "description": "test_smoke.py exists"
+    },
+    {
+      "id": "0.5",
+      "check_type": "file_exists",
+      "path": "external/LMCache/.git",
+      "description": "LMCache cloned"
+    },
+    {
+      "id": "0.6",
+      "check_type": "file_exists",
+      "path": "external/mydata/cacheblend_fig12/prompts.jsonl",
+      "description": "mydata prompts.jsonl exists (SHA verified by Phase 0 task)"
+    },
+    {
+      "id": "0.7",
+      "check_type": "pytest",
+      "path": "tests/",
+      "markers": "not gpu and not slow and not requires_model",
+      "description": "smoke tests pass"
+    },
+    {
+      "id": "0.8",
+      "check_type": "file_exists",
+      "path": "docs/lmcache-analysis.md",
+      "description": "LMCache analysis doc written"
+    },
+    {
+      "id": "0.9",
+      "check_type": "file_exists",
+      "path": "docs/figure12_like_disclosure.md",
+      "description": "Figure 12-like disclosure doc written"
+    }
+  ]
+}

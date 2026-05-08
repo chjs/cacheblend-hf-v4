@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+.venv/
+venv/
+
+# Outputs
+reports/phase-*-attachments/
+!reports/phase-*-attachments/.gitkeep
+benchmarks/results/*.jsonl
+benchmarks/results/*.png
+
+# But keep gate results and reports
+!reports/phase-*-report.md
+!gates/gate-*-result.json
+
+# External dependencies (clone fresh)
+external/LMCache/
+external/mydata/
+!external/.gitkeep
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local state (session lock, scheduled tasks)
+.claude/
