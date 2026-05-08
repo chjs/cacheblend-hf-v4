@@ -1,0 +1,51 @@
+{
+  "phase": "2",
+  "sub_phase": null,
+  "overall": "PASS",
+  "n_pass": 6,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "2.1",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.95s =============================="
+    },
+    {
+      "id": "2.2",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.49s =============================="
+    },
+    {
+      "id": "2.3",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.53s =============================="
+    },
+    {
+      "id": "2.4",
+      "description": "",
+      "check_type": "pytest",
+      "result": "PASS",
+      "detail": "============================== 1 skipped in 0.50s =============================="
+    },
+    {
+      "id": "2.5",
+      "description": "",
+      "check_type": "verify_phase",
+      "result": "PASS",
+      "detail": "verify_phase rc=0"
+    },
+    {
+      "id": "2.6",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $0.33 (cap: $1.50)"
+    }
+  ]
+}
