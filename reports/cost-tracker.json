@@ -1,0 +1,56 @@
+{
+  "cumulative_usd": 1.09,
+  "phases": {
+    "1": 0.16,
+    "2": 0.17,
+    "3": 0.08,
+    "4": 0.08,
+    "6a": 0.1,
+    "6b": 0.1,
+    "6c": 0.4
+  },
+  "events": [
+    {
+      "timestamp": "2026-05-07T15:34:27.738754",
+      "phase": "1",
+      "cost_usd": 0.16,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T16:29:08.000433",
+      "phase": "2",
+      "cost_usd": 0.17,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T16:59:02.324143",
+      "phase": "3",
+      "cost_usd": 0.08,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T21:21:11.928392",
+      "phase": "4",
+      "cost_usd": 0.08,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T22:20:14.281364",
+      "phase": "6a",
+      "cost_usd": 0.1,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T22:26:18.560256",
+      "phase": "6b",
+      "cost_usd": 0.1,
+      "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-07T23:09:02.869096",
+      "phase": "6c",
+      "cost_usd": 0.4,
+      "detail": "manual"
+    }
+  ]
+}
