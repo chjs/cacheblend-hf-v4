@@ -1,0 +1,30 @@
+{
+  "phase": "6",
+  "sub_phase": "6b",
+  "overall": "PASS",
+  "n_pass": 3,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "6b.1",
+      "description": "",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "f1_diff_cb_vs_full = -0.01833361597201061 >= -0.05"
+    },
+    {
+      "id": "6b.2",
+      "description": "",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "f1_diff_cb_vs_reuse = 0.11887284435081034 > 0.0"
+    },
+    {
+      "id": "6b.3",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $0.69 (cap: $7.00)"
+    }
+  ]
+}

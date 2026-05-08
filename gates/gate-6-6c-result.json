@@ -1,0 +1,30 @@
+{
+  "phase": "6",
+  "sub_phase": "6c",
+  "overall": "PASS",
+  "n_pass": 3,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "6c.1",
+      "description": "paired bootstrap CI [L28]",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "ci_low_cb_vs_reuse = 0.04547632778974415 > 0.0"
+    },
+    {
+      "id": "6c.2",
+      "description": "",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "f1_diff_cb_vs_full = -0.03202774946604367 >= -0.05"
+    },
+    {
+      "id": "6c.3",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $1.09 (cap: $10.00)"
+    }
+  ]
+}

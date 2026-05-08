@@ -1,0 +1,44 @@
+{
+  "phase": "6",
+  "sub_phase": "6a",
+  "overall": "PASS",
+  "n_pass": 5,
+  "n_fail": 0,
+  "results": [
+    {
+      "id": "6a.1",
+      "description": "",
+      "check_type": "file_exists",
+      "result": "PASS",
+      "detail": "path exists: /Users/chjs/Research/cacheblend-hf-v4/reports/phase-6a-attachments/results.jsonl"
+    },
+    {
+      "id": "6a.2",
+      "description": "F1 sanity",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "FullRecomputeRunner.f1_mean = 0.10360283568321094 >= 0.1"
+    },
+    {
+      "id": "6a.3",
+      "description": "F1 catastrophic guard",
+      "check_type": "metric",
+      "result": "PASS",
+      "detail": "f1_diff_cb_vs_full = 0.06019603785704192 >= -0.1"
+    },
+    {
+      "id": "6a.4",
+      "description": "",
+      "check_type": "verify_phase",
+      "result": "PASS",
+      "detail": "verify_phase rc=0"
+    },
+    {
+      "id": "6a.5",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $0.59 (cap: $4.00)"
+    }
+  ]
+}
