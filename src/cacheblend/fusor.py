@@ -12,6 +12,10 @@ prefix_cache.
 
 Boundary safe-shortcut [L13]: ratio=0 → full_reuse, ratio≥1 → full_recompute,
 single-chunk full_reuse → full_recompute (single prefix is identical path).
+
+`fuse_selective_lmc_parity` (post-Phase-7) is the LMCache `blender.process_qkv`
+1:1 port — sparse Q × full mixed-K/V forward from check_layer onward, per
+paper §4. See docs/notes/lmcache-1to1-comparison.md.
 """
 from __future__ import annotations
 
@@ -19,6 +23,7 @@ import torch
 
 from cacheblend.chunker import Chunk, chunk_offsets, fused_input_ids
 from cacheblend.kv_store import KVStore
+from cacheblend.model import LayerwiseOutput
 
 
 def fuse_full_recompute(
@@ -357,3 +362,290 @@ def fuse_prefix_cache(
     finally:
         for h in handles:
             h.remove()
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# fuse_selective_lmc_parity — LMCache process_qkv 1:1 port
+# ───────────────────────────────────────────────────────────────────────────────
+
+
+def fuse_selective_lmc_parity(
+    layerwise_model,
+    chunks: list[Chunk],
+    kv_store: KVStore,
+    recompute_ratio: float = 0.15,
+    check_layer: int = 1,
+    return_layerwise_output: bool = False,
+):
+    """LMCache `blender.process_qkv` parity — paper §4 faithful selective recompute.
+
+    Differs from `fuse_selective` in algorithm semantics, not just impl:
+      - `fuse_selective` (legacy):  FULL forward at every layer; K/V hooks merge
+        cached@non-HKVD + fresh@HKVD. Hidden_state stays full-length.
+      - `fuse_selective_lmc_parity`: SPARSE forward at layers >= check_layer.
+        At check_layer: select top-K, slice Q/residual to top, attention runs
+        sparse Q × full mixed-K/V. Layers check_layer+1..end: hidden_state stays
+        SPARSE [topk_num], K/V cache stays FULL (cached@non-HKVD scattered with
+        fresh@HKVD each layer). Matches LMCache's `process_qkv` exactly.
+
+    The end past_key_values DynamicCache has full-length K/V at every layer:
+      - Layers 0..check_layer-1: K/V from full fresh forward
+      - Layer check_layer..end:  K cached(RoPE-shifted) at non-HKVD positions +
+                                 K fresh-from-sparse-forward at HKVD positions
+      - V same pattern (no RoPE)
+
+    For greedy decoding to work, the last position MUST be in top_indices
+    (we enforce by force-include if absent — minor LMCache deviation).
+
+    Boundary safe-shortcuts [L13] (kept as in fuse_selective for bit-exact edges):
+      - ratio == 0     → fuse_full_reuse
+      - ratio >= 1     → fuse_full_recompute
+      - len(chunks) <= 1 → fuse_full_recompute
+
+    See `docs/notes/lmcache-1to1-comparison.md` for the formal 1:1 mapping.
+    """
+    # Boundary safe-shortcuts (same as fuse_selective).
+    if recompute_ratio == 0:
+        return fuse_full_reuse(layerwise_model, chunks, kv_store,
+                               return_layerwise_output=return_layerwise_output)
+    if recompute_ratio >= 1:
+        return fuse_full_recompute(layerwise_model, chunks,
+                                   return_layerwise_output=return_layerwise_output)
+    if len(chunks) <= 1:
+        return fuse_full_recompute(layerwise_model, chunks,
+                                   return_layerwise_output=return_layerwise_output)
+
+    from transformers.cache_utils import DynamicCache
+    from transformers.models.mistral.modeling_mistral import (
+        apply_rotary_pos_emb,
+        eager_attention_forward,
+    )
+    from cacheblend.hkvd import kv_deviation, select_top_k
+
+    inner = layerwise_model._inner
+    n_layers = layerwise_model.num_layers
+    device = layerwise_model.device
+    dtype = layerwise_model.dtype
+    attn0 = inner.layers[0].self_attn
+    num_kv_heads = attn0.config.num_key_value_heads
+    num_heads = attn0.config.num_attention_heads
+    head_dim = attn0.head_dim
+    hidden_kv = num_kv_heads * head_dim
+
+    # ── Build full-length cached K_pre + V from KVStore ─────────────────────
+    offsets = chunk_offsets(chunks)
+    total_seq = offsets[-1][1]
+
+    K_stored_pre = [torch.zeros((1, total_seq, hidden_kv), dtype=dtype, device=device)
+                    for _ in range(n_layers)]
+    V_stored = [torch.zeros((1, total_seq, hidden_kv), dtype=dtype, device=device)
+                for _ in range(n_layers)]
+    for chunk, (start, end) in zip(chunks, offsets):
+        if not kv_store.has(chunk.chunk_id):
+            raise KeyError(f"fuse_selective_lmc_parity: chunk {chunk.chunk_id!r} not in KVStore")
+        entry = kv_store.get(chunk.chunk_id)
+        for li in range(n_layers):
+            K_stored_pre[li][:, start:end, :] = entry["K"][li]
+            V_stored[li][:, start:end, :] = entry["V"][li]
+
+    # ── Forward setup ───────────────────────────────────────────────────────
+    input_ids = fused_input_ids(chunks, device=device)
+    position_ids_full = torch.arange(total_seq, device=device).unsqueeze(0)
+    cache_position_full = torch.arange(total_seq, device=device)
+
+    past_key_values = DynamicCache()
+    # Reset pre-RoPE K capture (LayerwiseModel's k_proj hooks fire during full forward).
+    layerwise_model._pre_rope_k = {}
+
+    with torch.inference_mode():
+        hidden_states = inner.embed_tokens(input_ids)
+        cos_full, sin_full = inner.rotary_emb(hidden_states, position_ids_full)
+        position_embeddings_full = (cos_full, sin_full)
+
+        causal_mask_full = inner._update_causal_mask(
+            attention_mask=None,
+            input_tensor=hidden_states,
+            cache_position=cache_position_full,
+            past_key_values=past_key_values,
+            output_attentions=False,
+        )
+
+        # ── Layers 0..check_layer-1: full fresh forward (matches LMCache) ───
+        # NOTE: HF transformers 4.49 MistralDecoderLayer uses kwarg
+        # `past_key_value` (singular). Plural silently goes into **kwargs and
+        # is ignored → cache stays empty. Same for MistralAttention.
+        for li in range(check_layer):
+            out = inner.layers[li](
+                hidden_states=hidden_states,
+                attention_mask=causal_mask_full,
+                position_ids=position_ids_full,
+                past_key_value=past_key_values,
+                use_cache=True,
+                cache_position=cache_position_full,
+                position_embeddings=position_embeddings_full,
+            )
+            hidden_states = out if not isinstance(out, tuple) else out[0]
+
+        # ── Layer check_layer: manual forward with HKVD + sparse slicing ────
+        layer_ck = inner.layers[check_layer]
+        attn_ck = layer_ck.self_attn
+
+        # input_layernorm + qkv projection (FULL)
+        residual_full = hidden_states
+        h_normed = layer_ck.input_layernorm(hidden_states)
+
+        q_full = attn_ck.q_proj(h_normed)         # (1, S, num_heads*head_dim)
+        k_full_pre = attn_ck.k_proj(h_normed)     # (1, S, hidden_kv) PRE-RoPE
+        v_full = attn_ck.v_proj(h_normed)         # (1, S, hidden_kv)
+
+        # HKVD selection (pre-RoPE K is invariant; LMCache compares post-RoPE,
+        # but RoPE preserves squared L2 → mathematically identical).
+        deviations = kv_deviation(k_full_pre, K_stored_pre[check_layer])
+        top_indices = select_top_k(deviations, recompute_ratio)
+        # Force-include last position so greedy decode has valid logits there.
+        # (Minor deviation from LMCache; in practice last position usually
+        # ranks top by deviation, but guard for safety.)
+        last_pos = total_seq - 1
+        if last_pos not in top_indices.tolist():
+            # Drop the lowest-deviation selected to make room.
+            sel_devs = deviations[top_indices]
+            drop_idx = top_indices[sel_devs.argmin()].item()
+            top_indices = torch.tensor(
+                sorted([i for i in top_indices.tolist() if i != drop_idx] + [last_pos]),
+                dtype=top_indices.dtype, device=top_indices.device,
+            )
+        topk_num = top_indices.shape[0]
+
+        # Build mixed K_pre and V (cached at non-top, fresh at top).
+        k_mixed_pre = k_full_pre.clone()
+        v_mixed = v_full.clone()
+        non_top_mask = torch.ones(total_seq, dtype=torch.bool, device=device)
+        non_top_mask[top_indices] = False
+        k_mixed_pre[:, non_top_mask, :] = K_stored_pre[check_layer][:, non_top_mask, :]
+        v_mixed[:, non_top_mask, :] = V_stored[check_layer][:, non_top_mask, :]
+
+        # Reshape to heads (matches HF MistralAttention reshape).
+        hidden_shape_full = (1, total_seq, -1, head_dim)
+        q_full_heads = q_full.view(hidden_shape_full).transpose(1, 2)            # (1, num_heads, S, hd)
+        k_mixed_heads_pre = k_mixed_pre.view(hidden_shape_full).transpose(1, 2)  # (1, num_kv, S, hd)
+        v_mixed_heads = v_mixed.view(hidden_shape_full).transpose(1, 2)
+
+        # Apply RoPE on full Q and full mixed K (positions = full).
+        q_full_heads_post, k_full_post = apply_rotary_pos_emb(
+            q_full_heads, k_mixed_heads_pre, cos_full, sin_full
+        )
+
+        # Slice Q (and residual) to top_indices — this is LMCache's process_qkv.
+        q_sparse_post = q_full_heads_post[:, :, top_indices, :]  # (1, num_heads, topk_num, hd)
+        residual_sparse = residual_full[:, top_indices, :]       # (1, topk_num, hidden)
+
+        # Update past_key_values with FULL mixed K + V at check_layer.
+        past_key_values.update(k_full_post, v_mixed_heads, check_layer)
+
+        # Causal mask for sparse Q × full K: slice rows of the full mask.
+        sparse_causal_mask = causal_mask_full[:, :, top_indices, :]  # (1, 1, topk_num, S)
+
+        # Eager attention with sparse Q × full mixed K/V.
+        attn_out_ck, _ = eager_attention_forward(
+            attn_ck,
+            q_sparse_post, k_full_post, v_mixed_heads,
+            sparse_causal_mask,
+            scaling=attn_ck.scaling,
+            dropout=0.0,
+        )
+        # attn_out_ck: (1, topk_num, num_heads, head_dim) — already transposed back
+        attn_out_ck = attn_out_ck.reshape(1, topk_num, num_heads * head_dim).contiguous()
+        attn_out_ck = attn_ck.o_proj(attn_out_ck)
+
+        # Residual addition + FFN (all sparse).
+        h_sparse = residual_sparse + attn_out_ck
+        residual_sparse2 = h_sparse
+        h_sparse_normed = layer_ck.post_attention_layernorm(h_sparse)
+        h_sparse = layer_ck.mlp(h_sparse_normed)
+        h_sparse = residual_sparse2 + h_sparse
+
+        # ── Layers check_layer+1..end: sparse hidden, full mixed K/V cache ─
+        cos_sparse = cos_full[:, top_indices, :]
+        sin_sparse = sin_full[:, top_indices, :]
+
+        # cache_position for sparse: original positions of top_indices.
+        # (Matches what LMCache stores — sparse Q's "true" positions.)
+
+        for li in range(check_layer + 1, n_layers):
+            layer_li = inner.layers[li]
+            attn_li = layer_li.self_attn
+
+            residual_sparse_in = h_sparse
+            h_normed_sparse = layer_li.input_layernorm(h_sparse)
+
+            q_sparse = attn_li.q_proj(h_normed_sparse)       # (1, topk_num, num_heads*hd)
+            k_sparse_pre = attn_li.k_proj(h_normed_sparse)   # (1, topk_num, hidden_kv) PRE-RoPE
+            v_sparse = attn_li.v_proj(h_normed_sparse)       # (1, topk_num, hidden_kv)
+
+            sparse_shape = (1, topk_num, -1, head_dim)
+            q_sparse_heads = q_sparse.view(sparse_shape).transpose(1, 2)
+            k_sparse_heads_pre = k_sparse_pre.view(sparse_shape).transpose(1, 2)
+            v_sparse_heads = v_sparse.view(sparse_shape).transpose(1, 2)
+
+            # RoPE on sparse Q, K at the actual (top_indices) positions.
+            q_sparse_post, k_sparse_post = apply_rotary_pos_emb(
+                q_sparse_heads, k_sparse_heads_pre, cos_sparse, sin_sparse
+            )
+
+            # Build full K cache at this layer: cached(RoPE-shifted) at non-top,
+            # fresh(post-RoPE) at top. cached K_pre is at chunk-local positions;
+            # we shift to fused-global positions using HF's apply_rotary_pos_emb.
+            k_cached_pre_full = K_stored_pre[li]  # (1, S, hidden_kv)
+            k_cached_pre_heads = k_cached_pre_full.view(
+                1, total_seq, num_kv_heads, head_dim
+            ).transpose(1, 2)  # (1, num_kv, S, hd)
+            # apply_rotary_pos_emb wants (q, k, cos, sin); dummy q.
+            dummy_q = torch.zeros_like(k_cached_pre_heads)
+            _q_dummy, k_cached_post_heads = apply_rotary_pos_emb(
+                dummy_q, k_cached_pre_heads, cos_full, sin_full
+            )
+
+            # Scatter fresh at top.
+            k_full_li = k_cached_post_heads.clone()
+            k_full_li[:, :, top_indices, :] = k_sparse_post
+
+            # V: cached at non-top, fresh at top (V has no RoPE).
+            v_cached_heads = V_stored[li].view(
+                1, total_seq, num_kv_heads, head_dim
+            ).transpose(1, 2)
+            v_full_li = v_cached_heads.clone()
+            v_full_li[:, :, top_indices, :] = v_sparse_heads
+
+            past_key_values.update(k_full_li, v_full_li, li)
+
+            # Sparse Q × full mixed K/V attention.
+            sparse_causal_mask_li = causal_mask_full[:, :, top_indices, :]
+            attn_out_li, _ = eager_attention_forward(
+                attn_li,
+                q_sparse_post, k_full_li, v_full_li,
+                sparse_causal_mask_li,
+                scaling=attn_li.scaling,
+                dropout=0.0,
+            )
+            attn_out_li = attn_out_li.reshape(1, topk_num, num_heads * head_dim).contiguous()
+            attn_out_li = attn_li.o_proj(attn_out_li)
+
+            h_sparse = residual_sparse_in + attn_out_li
+            residual_sparse_in2 = h_sparse
+            h_sparse_normed = layer_li.post_attention_layernorm(h_sparse)
+            h_sparse = layer_li.mlp(h_sparse_normed)
+            h_sparse = residual_sparse_in2 + h_sparse
+
+        # ── Final norm + lm_head on SPARSE hidden_state ─────────────────────
+        h_sparse_normed = inner.norm(h_sparse)
+        logits_sparse = layerwise_model.model.lm_head(h_sparse_normed)  # (1, topk_num, vocab)
+
+        # Scatter sparse logits back into full-length tensor at top_indices.
+        # Only the last position's logits is used by greedy decode; other
+        # non-top positions get zeros (no fresh computation occurred there).
+        vocab_size = logits_sparse.shape[-1]
+        logits_full = torch.zeros((1, total_seq, vocab_size), dtype=logits_sparse.dtype, device=device)
+        logits_full[:, top_indices, :] = logits_sparse
+
+    out_obj = LayerwiseOutput(logits=logits_full, past_key_values=past_key_values)
+    return out_obj if return_layerwise_output else logits_full

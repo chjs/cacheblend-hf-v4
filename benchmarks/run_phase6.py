@@ -107,15 +107,23 @@ def _run_prefix_cache(lw_model, model, tokenizer, ex, max_new_tokens, kv_store):
                           max_new_tokens, t_start, lw_model.device)
 
 
-def _run_cacheblend(lw_model, model, tokenizer, ex, max_new_tokens, kv_store, ratio, check_layer):
-    from cacheblend.fusor import fuse_selective
+def _run_cacheblend(lw_model, model, tokenizer, ex, max_new_tokens, kv_store, ratio, check_layer, impl="legacy"):
+    """Run CacheBlend selective recompute.
+
+    impl='legacy'      → fuse_selective (full forward + hook merge; v4 original)
+    impl='lmc_parity'  → fuse_selective_lmc_parity (sparse forward, LMCache 1:1)
+    """
+    if impl == "lmc_parity":
+        from cacheblend.fusor import fuse_selective_lmc_parity as _fn
+    else:
+        from cacheblend.fusor import fuse_selective as _fn
     chunks = _build_chunks(tokenizer, ex)
     if lw_model.device.type == "cuda":
         torch.cuda.synchronize()
     t_start = time.perf_counter()
-    out = fuse_selective(lw_model, chunks, kv_store,
-                         recompute_ratio=ratio, check_layer=check_layer,
-                         return_layerwise_output=True)
+    out = _fn(lw_model, chunks, kv_store,
+              recompute_ratio=ratio, check_layer=check_layer,
+              return_layerwise_output=True)
     return _greedy_decode(model, tokenizer, out.logits, out.past_key_values,
                           max_new_tokens, t_start, lw_model.device)
 
@@ -165,6 +173,8 @@ def main():
     ap.add_argument("--max-new-tokens", type=int, default=32)
     ap.add_argument("--cb-ratio", type=float, default=0.15)
     ap.add_argument("--cb-check-layer", type=int, default=1)
+    ap.add_argument("--cb-impl", choices=["legacy", "lmc_parity"], default="lmc_parity",
+                    help="CacheBlend impl: legacy (full forward) or lmc_parity (sparse, paper §4 / LMCache).")
     ap.add_argument("--checkpoint-every", type=int, default=50, help="append jsonl every N samples [L07]")
     ap.add_argument("--resume", action="store_true", help="skip already-done sample IDs from results.jsonl")
     args = ap.parse_args()
@@ -256,7 +266,8 @@ def main():
                             res = _run_prefix_cache(lw_model, model, tokenizer, ex, args.max_new_tokens, gpu_store)
                         else:  # CacheBlendV4Runner
                             res = _run_cacheblend(lw_model, model, tokenizer, ex, args.max_new_tokens,
-                                                  gpu_store, args.cb_ratio, args.cb_check_layer)
+                                                  gpu_store, args.cb_ratio, args.cb_check_layer,
+                                                  impl=args.cb_impl)
                     finally:
                         gpu_store.clear()
                         del gpu_store
@@ -266,7 +277,12 @@ def main():
                 print(f"  ERROR ex={ex_id} runner={runner}: {type(e).__name__}: {e}", flush=True)
                 continue
 
-            f1 = compute_f1_against_aliases(res["text"], golds, tokenizer)
+            try:
+                # mydata _parse_generation has IndexError on empty pred (L41).
+                # Fall back to 0.0 — empty prediction is a fail anyway.
+                f1 = compute_f1_against_aliases(res["text"], golds, tokenizer)
+            except (IndexError, Exception):
+                f1 = 0.0
             try:
                 rl = max(compute_rouge_l(res["text"], g) for g in golds)
             except Exception:

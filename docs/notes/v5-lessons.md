@@ -171,11 +171,53 @@ _greedy_decode 루프의 model(input_ids=...) 호출에 torch.inference_mode()/n
 **v5 반영**:
 v5: 모든 generation loop 와 forward 호출에 torch.inference_mode() context 명시 의무. tests/test_no_autograd.py 등으로 model.eval() ≠ no autograd 가정 검증. CPU offload 도 추가 도움 (Phase 6 driver 에 _store_to_gpu 헬퍼 박힘).
 
+
+## L41 — compute_f1_against_aliases 가 빈 prediction 에서 IndexError (2026-05-08, Phase 7)
+
+**카테고리**: mydata harness 호환성
+
+**증상**:
+Phase 7a 의 Llama-8B generation 일부 sample 이 빈 string 반환. mydata harness/metrics.py:33 의 _parse_generation 가 'if s and s.split()[0].startswith(...)' 에서 s='' 또는 whitespace-only 일 때 list index out of range. 전체 7a run rc=1 로 abort.
+
+**근본 원인**:
+mydata harness 의 _parse_generation 이 empty/whitespace prediction 을 가드하지 않음. Mistral 은 거의 빈 string 안 나왔으나 Llama-8B 는 일부 sample 에서 발생.
+
+**v5 반영**:
+run_phase6.py 의 compute_f1_against_aliases 호출을 try/except (IndexError, Exception) 으로 감싸 빈 prediction 시 f1=0.0 fallback. v5 에선 mydata harness 측 또는 우리 wrapper 에서 prediction 정규화 (None/empty → '').
+
+
+## L42 — Llama-3.1-8B 에서 ratio=0.15/check_layer=1 default 가 FullReuse 를 능가 못함 (2026-05-08, Phase 7)
+
+**카테고리**: 알고리즘 / 모델 의존성
+
+**증상**:
+Phase 7c (n=200) F1: FullRecompute=0.193, FullReuse=0.167, CacheBlend=0.156. ci_low_cb_vs_reuse = -0.058 < 0 (95% CI [-0.058, +0.033], gate 7c.1 FAIL). Mistral 의 +0.046 우위와 정반대. Llama 의 FullReuse F1 가 FullRecompute 의 86% 로 Mistral 의 56% 대비 quality 손실 작음 → selective recompute marginal gain 묻힘.
+
+**근본 원인**:
+Llama-3.1 의 RoPE scaling (theta=500000 vs Mistral 1000000) + architecture 차이로 cross-chunk attention drift 패턴 다름. Phase 3 long-chunk sweep 도 Mistral elbow 약함 보고 — 모델 의존성 (v4-lessons L14). ratio=0.15/CL=1 single-CL flat schedule 이 Llama 에 부적절. fixed default 가 모델 별 최적 아님.
+
+**v5 반영**:
+v5: 모델 별 ratio/check_layer tuning 단계 의무화 (Phase 8 gradual filtering 의 motivation 강화). 또는 (1) 모델 별 elbow 측정 후 ratio default 결정, (2) multi-check_layer schedule 로 lin_decay 시도 (Phase 8 의 핵심 가설), (3) check_layer 위치를 1 외 다른 layer 로 변경 (예: 2, 5) 시도. Phase 7d (70B 8-bit) 진입 전 8B 결과 분석 필요.
+
+
+## L43 — fuse_selective 가 LMCache process_qkv 와 다른 알고리즘 (full vs sparse forward) (2026-05-18, Phase 7)
+
+**카테고리**: 알고리즘 정확성
+
+**증상**:
+Phase 7c FAIL 이후 LMCache 1:1 비교에서 발견: 우리 fuse_selective 는 check_layer 이후 full forward (Q full, hook 으로 K/V 만 merge); LMCache 는 sparse forward (Q[top_indices] 로 slicing, attention 도 sparse Q × full mixed K/V). 결과적으로 top-K 위치의 K/V 값이 다른 hidden_state propagation 을 거침 — paper §4 의 85% FLOPS 절감 핵심 가설 미충족 + 모델별 quality 차이.
+
+**근본 원인**:
+v4 구현 초기에 hook-based 메커니즘 (HF 친화적) 채택. 'K/V 만 merge 하면 의미적으로 동등' 이라는 가정이 잘못. Q 와 hidden_state 도 sparse 가 되어야 LMCache 와 동치. 검증 시 docs/notes/lmcache-1to1-comparison.md 의 6 메커니즘 중 §2.6 만 차이.
+
+**v5 반영**:
+fuse_selective_lmc_parity 신규 추가 (fusor.py:248+). HF DecoderLayer 의 sub-module 을 manual 호출하여 check_layer 부터 Q[top]/residual[top] sparse slice + sparse Q × full mixed K/V eager_attention. past_key_values 는 full-length 유지 (decode 호환). CPU 단위 테스트 8/8 PASS. v5 에서는 처음부터 sparse-forward 디자인.
+
 <!-- LESSONS_END -->
 
 ---
 
 ## 누적 통계
 
-- 총 lessons: 10
-- 마지막 업데이트: 2026-05-08
+- 총 lessons: 13
+- 마지막 업데이트: 2026-05-18

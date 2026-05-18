@@ -20,6 +20,7 @@ from cacheblend.fusor import (
     fuse_full_reuse,
     fuse_selective,
     fuse_selective_pipelined,
+    fuse_selective_lmc_parity,
     fuse_prefix_cache,
 )
 from cacheblend.hkvd import kv_deviation, select_top_k
@@ -56,6 +57,7 @@ __all__ = [
     "fuse_full_reuse",
     "fuse_selective",
     "fuse_selective_pipelined",
+    "fuse_selective_lmc_parity",
     "fuse_prefix_cache",
     "kv_deviation",
     "select_top_k",
