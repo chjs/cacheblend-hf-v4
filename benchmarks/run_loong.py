@@ -186,18 +186,18 @@ def _run_cacheblend(lw_model, model, tokenizer, cached_chunks, question_chunk,
     If capture_hkvd=True, also return the HKVD-selected token indices (for the
     boundary-enrichment analysis required by the protocol).
     """
-    from cacheblend.fusor import fuse_selective_lmc_parity
+    from cacheblend.fusor import fuse_selective
     if lw_model.device.type == "cuda":
         torch.cuda.synchronize()
     t_start = time.perf_counter()
     if capture_hkvd:
-        cached_out, hkvd_indices = fuse_selective_lmc_parity(
+        cached_out, hkvd_indices = fuse_selective(
             lw_model, cached_chunks, kv_store,
             recompute_ratio=ratio, check_layer=check_layer,
             return_layerwise_output=True, return_hkvd_indices=True,
         )
     else:
-        cached_out = fuse_selective_lmc_parity(
+        cached_out = fuse_selective(
             lw_model, cached_chunks, kv_store,
             recompute_ratio=ratio, check_layer=check_layer,
             return_layerwise_output=True,

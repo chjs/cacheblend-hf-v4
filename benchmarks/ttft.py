@@ -47,7 +47,7 @@ def main():
     from cacheblend.precompute import precompute_chunk_kv
     from cacheblend.fusor import (
         fuse_full_recompute, fuse_full_reuse, fuse_prefix_cache,
-        fuse_selective, fuse_selective_pipelined,
+        fuse_selective,
     )
 
     out_dir = Path("/workspace/cacheblend-hf-v4/reports/phase-4-attachments")
@@ -93,7 +93,6 @@ def main():
             "full_reuse": lambda c=chunks, s=store: fuse_full_reuse(model, c, s),
             "prefix_cache": lambda c=chunks, s=store: fuse_prefix_cache(model, c, s),
             "selective": lambda c=chunks, s=store: fuse_selective(model, c, s, recompute_ratio=0.15),
-            "selective_pipelined": lambda c=chunks, s=store: fuse_selective_pipelined(model, c, s, recompute_ratio=0.15, prefetch=True),
         }
         row = {"chunk_B": B, "total_seq": total_seq}
         for name, fn in methods.items():

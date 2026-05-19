@@ -35,13 +35,10 @@ def test_imports_chunker():
 
 def test_imports_fusor():
     from cacheblend import (
-        fuse_full_recompute, fuse_full_reuse, fuse_selective,
-        fuse_selective_pipelined, fuse_prefix_cache,
+        fuse_full_recompute, fuse_full_reuse, fuse_selective, fuse_prefix_cache,
     )
-    # All stubs callable references
     assert all(callable(f) for f in [
-        fuse_full_recompute, fuse_full_reuse, fuse_selective,
-        fuse_selective_pipelined, fuse_prefix_cache,
+        fuse_full_recompute, fuse_full_reuse, fuse_selective, fuse_prefix_cache,
     ])
 
 
@@ -75,19 +72,7 @@ def test_imports_runners():
     assert r.check_layer == 1
 
 
-def test_boundary_safe_shortcut_logic():
-    """fuse_selective with ratio==0 should call fuse_full_reuse [L13].
-    
-    Both stubs raise NotImplementedError but with different messages, so we just
-    verify the dispatch logic works.
-    """
-    from cacheblend import fuse_selective
-    import pytest
-    
-    # ratio == 0 dispatches to full_reuse
-    with pytest.raises(NotImplementedError, match="fuse_full_reuse"):
-        fuse_selective(recompute_ratio=0)
-    
-    # ratio >= 1 dispatches to full_recompute
-    with pytest.raises(NotImplementedError, match="fuse_full_recompute"):
-        fuse_selective(recompute_ratio=1.0)
+# test_boundary_safe_shortcut_logic removed — was a Phase-0 stub test that
+# expected fuse_selective to raise NotImplementedError. Boundary dispatch
+# (ratio=0 → full_reuse, ratio>=1 → full_recompute) is now exercised end-to-end
+# in tests/test_fusor_selective.py with real models.

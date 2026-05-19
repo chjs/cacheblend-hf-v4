@@ -1,4 +1,4 @@
-"""CPU sanity tests for fuse_selective_lmc_parity (LMCache process_qkv 1:1 port).
+"""CPU sanity tests for fuse_selective (paper §4 / LMCache process_qkv 1:1 port).
 
 Validates the structural invariants that prove equivalence with LMCache's
 sparse-forward selective recompute:
@@ -91,13 +91,13 @@ def _populate_kv_store(lw_model, chunks):
 
 def test_boundary_ratio_zero_dispatches_to_full_reuse():
     """ratio=0 → fuse_full_reuse path."""
-    from cacheblend.fusor import fuse_selective_lmc_parity, fuse_full_reuse
+    from cacheblend.fusor import fuse_selective, fuse_full_reuse
     hf, _ = _build_tiny_mistral()
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=3, chunk_len=10)
     store = _populate_kv_store(lw, chunks)
 
-    logits_parity = fuse_selective_lmc_parity(lw, chunks, store, recompute_ratio=0.0)
+    logits_parity = fuse_selective(lw, chunks, store, recompute_ratio=0.0)
     logits_reuse = fuse_full_reuse(lw, chunks, store)
     # Should be bit-equal: same dispatch path.
     assert torch.equal(logits_parity, logits_reuse), \
@@ -106,13 +106,13 @@ def test_boundary_ratio_zero_dispatches_to_full_reuse():
 
 def test_boundary_ratio_one_dispatches_to_full_recompute():
     """ratio>=1 → fuse_full_recompute path."""
-    from cacheblend.fusor import fuse_selective_lmc_parity, fuse_full_recompute
+    from cacheblend.fusor import fuse_selective, fuse_full_recompute
     hf, _ = _build_tiny_mistral()
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=3, chunk_len=10)
     store = _populate_kv_store(lw, chunks)
 
-    logits_parity = fuse_selective_lmc_parity(lw, chunks, store, recompute_ratio=1.0)
+    logits_parity = fuse_selective(lw, chunks, store, recompute_ratio=1.0)
     logits_rec = fuse_full_recompute(lw, chunks)
     assert torch.equal(logits_parity, logits_rec), \
         "ratio=1 must dispatch to fuse_full_recompute (bit-equal)"
@@ -120,13 +120,13 @@ def test_boundary_ratio_one_dispatches_to_full_recompute():
 
 def test_single_chunk_dispatches_to_full_recompute():
     """len(chunks)<=1 → fuse_full_recompute path."""
-    from cacheblend.fusor import fuse_selective_lmc_parity, fuse_full_recompute
+    from cacheblend.fusor import fuse_selective, fuse_full_recompute
     hf, _ = _build_tiny_mistral()
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=1, chunk_len=10)
     store = _populate_kv_store(lw, chunks)
 
-    logits_parity = fuse_selective_lmc_parity(lw, chunks, store, recompute_ratio=0.2)
+    logits_parity = fuse_selective(lw, chunks, store, recompute_ratio=0.2)
     logits_rec = fuse_full_recompute(lw, chunks)
     assert torch.equal(logits_parity, logits_rec)
 
@@ -134,14 +134,14 @@ def test_single_chunk_dispatches_to_full_recompute():
 def test_past_key_values_full_length_at_every_layer():
     """End past_key_values must have full-length K/V at every layer
     (required for greedy decode to attend to full prefix)."""
-    from cacheblend.fusor import fuse_selective_lmc_parity
+    from cacheblend.fusor import fuse_selective
     hf, cfg = _build_tiny_mistral()
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=3, chunk_len=12)
     store = _populate_kv_store(lw, chunks)
     total_seq = sum(len(c.token_ids) for c in chunks)
 
-    out = fuse_selective_lmc_parity(
+    out = fuse_selective(
         lw, chunks, store,
         recompute_ratio=0.2, check_layer=1,
         return_layerwise_output=True,
@@ -160,7 +160,7 @@ def test_past_key_values_full_length_at_every_layer():
 def test_kv_cache_non_top_equals_rope_shifted_cached():
     """K/V cache at NON-HKVD positions must equal cached pre-RoPE K
     after RoPE-shift to fused positions. V same (no RoPE)."""
-    from cacheblend.fusor import fuse_selective_lmc_parity
+    from cacheblend.fusor import fuse_selective
     from cacheblend.rope import apply_rope_shift
     hf, cfg = _build_tiny_mistral()
     lw = _wrap_as_layerwise(hf)
@@ -169,7 +169,7 @@ def test_kv_cache_non_top_equals_rope_shifted_cached():
     total_seq = sum(len(c.token_ids) for c in chunks)
 
     check_layer = 1
-    out = fuse_selective_lmc_parity(
+    out = fuse_selective(
         lw, chunks, store,
         recompute_ratio=0.25, check_layer=check_layer,
         return_layerwise_output=True,
@@ -182,7 +182,7 @@ def test_kv_cache_non_top_equals_rope_shifted_cached():
     n_kv = cfg.num_key_value_heads
     hd = cfg.head_dim
 
-    # Re-build the full-length pre-RoPE K and V from the store (same as inside fuse_selective_lmc_parity).
+    # Re-build the full-length pre-RoPE K and V from the store (same as inside fuse_selective).
     n_layers = cfg.num_hidden_layers
     K_pre_full = [torch.zeros((1, total_seq, n_kv * hd), dtype=torch.float32) for _ in range(n_layers)]
     V_full = [torch.zeros((1, total_seq, n_kv * hd), dtype=torch.float32) for _ in range(n_layers)]
@@ -238,7 +238,7 @@ def test_kv_cache_non_top_equals_rope_shifted_cached():
 def test_last_position_in_top_indices_guarantee():
     """Force-include guard: last position must always be in top_indices,
     so greedy decode has valid logits at the final token."""
-    from cacheblend.fusor import fuse_selective_lmc_parity
+    from cacheblend.fusor import fuse_selective
     hf, cfg = _build_tiny_mistral(seed=999)
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=3, chunk_len=12, seed=11)
@@ -247,7 +247,7 @@ def test_last_position_in_top_indices_guarantee():
 
     # tiny ratio to stress: only a few tokens selected. Force-include
     # should still kick in for last position.
-    out = fuse_selective_lmc_parity(
+    out = fuse_selective(
         lw, chunks, store,
         recompute_ratio=0.05, check_layer=1,
         return_layerwise_output=True,
@@ -261,14 +261,14 @@ def test_last_position_in_top_indices_guarantee():
 def test_layers_before_check_layer_are_full_fresh():
     """Layers 0..check_layer-1 must have FULL FRESH K/V (matches full_recompute
     at those layers, since no merge yet)."""
-    from cacheblend.fusor import fuse_selective_lmc_parity, fuse_full_recompute
+    from cacheblend.fusor import fuse_selective, fuse_full_recompute
     hf, cfg = _build_tiny_mistral(seed=123)
     lw = _wrap_as_layerwise(hf)
     chunks = _make_chunks(n_chunks=3, chunk_len=10, seed=5)
     store = _populate_kv_store(lw, chunks)
 
     check_layer = 2  # explicit to test layers 0,1 are fresh
-    out_parity = fuse_selective_lmc_parity(
+    out_parity = fuse_selective(
         lw, chunks, store,
         recompute_ratio=0.2, check_layer=check_layer,
         return_layerwise_output=True,
@@ -285,35 +285,10 @@ def test_layers_before_check_layer_are_full_fresh():
         assert diff_V < 1e-5, f"layer {li} pre-check V diff {diff_V:.3e} (should be ~0)"
 
 
-def test_parity_differs_from_legacy_selective():
-    """Sanity: the new parity function produces DIFFERENT results from the
-    legacy fuse_selective (full-forward) on the same inputs. This documents
-    that they are different algorithms (the entire point of the fix)."""
-    from cacheblend.fusor import fuse_selective, fuse_selective_lmc_parity
-    hf, cfg = _build_tiny_mistral(seed=2026)
-    lw = _wrap_as_layerwise(hf)
-    chunks = _make_chunks(n_chunks=3, chunk_len=12, seed=17)
-    store = _populate_kv_store(lw, chunks)
-    total_seq = sum(len(c.token_ids) for c in chunks)
-
-    out_legacy = fuse_selective(
-        lw, chunks, store,
-        recompute_ratio=0.2, check_layer=1,
-        return_layerwise_output=True,
-    )
-    out_parity = fuse_selective_lmc_parity(
-        lw, chunks, store,
-        recompute_ratio=0.2, check_layer=1,
-        return_layerwise_output=True,
-    )
-
-    # Past K cache at check_layer+ MUST differ (different forward semantics).
-    diff_at_ck = (
-        out_legacy.past_key_values.key_cache[1]
-        - out_parity.past_key_values.key_cache[1]
-    ).abs().max()
-    # We expect a non-trivial difference (algorithm change).
-    assert diff_at_ck > 0, "Legacy and parity should differ at K cache after check_layer"
+# test_parity_differs_from_legacy_selective removed when legacy fuse_selective
+# was deleted. The point of that test was to document that the sparse-forward
+# implementation differs from the old hook-based one. With only the sparse
+# implementation left, the test no longer has anything to compare against.
 
 
 if __name__ == "__main__":
@@ -326,7 +301,6 @@ if __name__ == "__main__":
         test_kv_cache_non_top_equals_rope_shifted_cached,
         test_last_position_in_top_indices_guarantee,
         test_layers_before_check_layer_are_full_fresh,
-        test_parity_differs_from_legacy_selective,
     ]
     failed = 0
     for t in tests:

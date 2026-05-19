@@ -59,9 +59,9 @@ class LayerwiseModel:
 
         # Default attn_implementation is "eager" (bit-exact for Phase 0-7 logit checks).
         # For long-context runs (Loong), pass "flash_attention_2" to fit 50k+ tokens in
-        # 24-48GB GPUs. fuse_selective_lmc_parity manually calls eager_attention_forward
-        # for sparse layers (check_layer+), so the configured impl only affects the
-        # full-forward layers (0..check_layer-1) — flash/eager mix is safe.
+        # 24-48GB GPUs. fuse_selective manually calls SDPA for sparse layers
+        # (check_layer+), so the configured impl only affects the full-forward
+        # layers (0..check_layer-1) — flash/eager mix is safe.
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch_dtype,

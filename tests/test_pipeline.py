@@ -1,9 +1,13 @@
-"""Phase 4 — Pipelining & Prefix Cache correctness tests.
+"""Phase 4 — Prefix Cache + LoadingController correctness tests.
 
 Tolerance categories (frozen):
-  - 4.1 selective_pipelined ≡ selective : RECOMPUTE_PATH (max_diff < 1e-3)
   - 4.2 prefix_cache vs full_recompute  : MIXED_SHAPE (argmax exact + max_diff < 5e-2)
   - 4.3 LoadingController monotone      : CPU-only, no tolerance check
+
+Note: 4.1 (selective_pipelined ≡ selective) was removed when
+fuse_selective_pipelined was deleted — the pipelined wrapper was a
+prefetch-overlap timing experiment, not a separate algorithm; prefetch
+correctness is now exercised directly via KVStore.prefetch_chunk callers.
 """
 from __future__ import annotations
 
@@ -41,26 +45,6 @@ def chunks_and_store(lw_model):
         K, V = precompute_chunk_kv(lw_model, c)
         store.put(c.chunk_id, K, V)
     return chunks, store
-
-
-@pytest.mark.requires_model
-@pytest.mark.gpu
-def test_pipelined_eq_unpipelined(lw_model, chunks_and_store):
-    """selective_pipelined logits ≡ selective logits within RECOMPUTE_PATH (max_diff < 1e-3)."""
-    from cacheblend import Tolerance, assert_logits_close
-    from cacheblend.fusor import fuse_selective, fuse_selective_pipelined
-
-    chunks, store = chunks_and_store
-    sel_logits = fuse_selective(lw_model, chunks, store, recompute_ratio=0.15)
-    pipe_logits = fuse_selective_pipelined(
-        lw_model, chunks, store, recompute_ratio=0.15, prefetch=True,
-    )
-
-    result = assert_logits_close(
-        actual=pipe_logits, expected=sel_logits,
-        category=Tolerance.RECOMPUTE_PATH, name="logits",
-    )
-    print(f"\n[4.1] {result.detail}")
 
 
 @pytest.mark.requires_model

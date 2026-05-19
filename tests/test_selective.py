@@ -88,11 +88,12 @@ def test_ratio_1_eq_full_recompute(lw_model, chunks_and_store):
 @pytest.mark.requires_model
 @pytest.mark.gpu
 def test_selective_reduces_divergence(lw_model, chunks_and_store):
-    """Selective ratio=0.15 must reduce L2 divergence vs full_reuse baseline by >=15%.
+    """Selective ratio=0.15 must reduce L2 divergence vs full_reuse baseline at HKVD positions by >=15%.
 
-    Reference target: full_recompute logits (the ground truth).
-    Compare: full_reuse_logits vs full_recompute_logits  → baseline L2.
-             selective_logits  vs full_recompute_logits  → selective L2.
+    Sparse-forward fuse_selective only produces valid logits at top_indices (HKVD
+    positions); other positions are zero-scattered. So we measure at top_indices:
+      full_reuse_L2  = ||reuse[hkvd] - truth[hkvd]||_2
+      selective_L2   = ||sel[hkvd]   - truth[hkvd]||_2
     Pass if selective_L2 <= full_reuse_L2 * 0.85.
     """
     from cacheblend.fusor import fuse_selective, fuse_full_reuse, fuse_full_recompute
@@ -106,8 +107,11 @@ def test_selective_reduces_divergence(lw_model, chunks_and_store):
         return_hkvd_indices=True,
     )
 
-    full_reuse_l2 = (reuse_logits.float() - truth.float()).pow(2).mean().sqrt().item()
-    selective_l2 = (sel_logits.float() - truth.float()).pow(2).mean().sqrt().item()
+    truth_at_hkvd = truth[:, hkvd, :].float()
+    reuse_at_hkvd = reuse_logits[:, hkvd, :].float()
+    sel_at_hkvd = sel_logits[:, hkvd, :].float()
+    full_reuse_l2 = (reuse_at_hkvd - truth_at_hkvd).pow(2).mean().sqrt().item()
+    selective_l2 = (sel_at_hkvd - truth_at_hkvd).pow(2).mean().sqrt().item()
     reduction = 1.0 - (selective_l2 / max(full_reuse_l2, 1e-12))
 
     n_hkvd = int(hkvd.numel()) if hkvd is not None else -1

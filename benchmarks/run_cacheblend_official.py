@@ -184,7 +184,7 @@ def _greedy_decode(model, tokenizer, prefill_logits, past_kv, max_new_tokens, t_
 def _run_method(lw_model, model, tokenizer, chunks, kv_store, method, max_new_tokens,
                 ratio=0.15, check_layer=1, capture_hkvd=False):
     from cacheblend.fusor import (
-        fuse_full_recompute, fuse_full_reuse, fuse_selective_lmc_parity,
+        fuse_full_recompute, fuse_full_reuse, fuse_selective,
     )
     if lw_model.device.type == "cuda":
         torch.cuda.synchronize()
@@ -196,13 +196,13 @@ def _run_method(lw_model, model, tokenizer, chunks, kv_store, method, max_new_to
         out = fuse_full_reuse(lw_model, chunks, kv_store, return_layerwise_output=True)
     elif method == "CacheBlend":
         if capture_hkvd:
-            out, hkvd = fuse_selective_lmc_parity(
+            out, hkvd = fuse_selective(
                 lw_model, chunks, kv_store,
                 recompute_ratio=ratio, check_layer=check_layer,
                 return_layerwise_output=True, return_hkvd_indices=True,
             )
         else:
-            out = fuse_selective_lmc_parity(
+            out = fuse_selective(
                 lw_model, chunks, kv_store,
                 recompute_ratio=ratio, check_layer=check_layer,
                 return_layerwise_output=True,

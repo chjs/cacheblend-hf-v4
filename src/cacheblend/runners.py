@@ -284,7 +284,7 @@ class PrefixCacheRunner(_RunnerBase):
 
 
 class CacheBlendV4Runner(_RunnerBase):
-    """Selective recompute (Phase 3)."""
+    """Selective recompute (paper §4, sparse-forward implementation)."""
 
     def __init__(self, model=None, tokenizer=None, recompute_ratio: float = 0.15, check_layer: int = 1):
         super().__init__(model=model, tokenizer=tokenizer)
@@ -299,7 +299,6 @@ class CacheBlendV4Runner(_RunnerBase):
     def _run_prefill_and_generate(self, max_new_tokens: int):
         from cacheblend.precompute import precompute_chunk_kv
         from cacheblend.fusor import fuse_selective
-        from cacheblend.chunker import fused_input_ids
 
         self._ensure_lw_and_store()
         chunks = self._build_chunks()
@@ -311,17 +310,19 @@ class CacheBlendV4Runner(_RunnerBase):
         if self.device.type == "cuda":
             torch.cuda.synchronize()
         t_start = time.perf_counter()
-        prefill_logits = fuse_selective(
+        # Paper §4: decode uses the selectively-recomputed past_key_values
+        # directly (no second full forward). DynamicCache built inside
+        # fuse_selective has full-length K/V at every layer (cached@non-HKVD +
+        # fresh@HKVD), which is exactly what paper §4 specifies.
+        prefill_out = fuse_selective(
             self._lw_model, chunks, self._kv_store,
             recompute_ratio=self.recompute_ratio,
             check_layer=self.check_layer,
+            return_layerwise_output=True,
         )
-        input_ids = fused_input_ids(chunks, device=self.device)
-        with torch.inference_mode():
-            out = self.model(input_ids=input_ids, use_cache=True)
         return self._greedy_decode_from_prefill(
-            prefill_logits=prefill_logits,
-            past_key_values=out.past_key_values,
+            prefill_logits=prefill_out.logits,
+            past_key_values=prefill_out.past_key_values,
             max_new_tokens=max_new_tokens,
             t_start=t_start,
         )
