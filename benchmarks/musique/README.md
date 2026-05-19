@@ -133,6 +133,7 @@ hook in `run_blend_musique.py`:
 | `CACHEBLEND_DTYPE` | `float16` | Model dtype. |
 | `CACHEBLEND_CHECK_LAYER` | `1` | `check_layer` arg to `fuse_selective`. |
 | `CACHEBLEND_RECOMP_RATIO` | `0.15` | Default `recomp_ratio` (used when `cache_fuse_metadata['recomp_ratio']` not set — musique default). |
+| `CACHEBLEND_ATTN_IMPL` | `sdpa` | `attn_implementation` for the HF model. musique prompts reach ~7K tokens; eager attention OOMs on 24GB GPUs. |
 | `CACHEBLEND_MUSIQUE_N` | (unset = all 150) | Slice `utils.load_dataset()` to first N examples. Original file untouched; truncation done via `utils` rebinding before import. |
 
 ## Original ↔ shim mapping

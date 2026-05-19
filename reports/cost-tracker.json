@@ -1,5 +1,5 @@
 {
-  "cumulative_usd": 3.41,
+  "cumulative_usd": 3.58,
   "phases": {
     "1": 0.16,
     "2": 0.17,
@@ -13,7 +13,8 @@
     "7c": 0.4,
     "8-step1": 0.02,
     "lmc-parity-rerun": 0.33,
-    "loong-50": 1.4
+    "loong-50": 1.4,
+    "musique-blend-original": 0.17
   },
   "events": [
     {
@@ -93,6 +94,12 @@
       "phase": "loong-50",
       "cost_usd": 1.4,
       "detail": "manual"
+    },
+    {
+      "timestamp": "2026-05-19T12:55:00.000000",
+      "phase": "musique-blend-original",
+      "cost_usd": 0.17,
+      "detail": "vast.ai instance 37066761 (RTX 3090 24GB), 43.3min wall × $0.232/hr; N=150 musique full sweep + N=5 smoke"
     }
   ]
 }

@@ -154,6 +154,11 @@ _DEVICE = os.environ.get('CACHEBLEND_DEVICE') or (
 )
 _DTYPE = os.environ.get('CACHEBLEND_DTYPE', 'float16')
 _CHECK_LAYER = int(os.environ.get('CACHEBLEND_CHECK_LAYER', '1'))
+# eager attention materializes full (heads, S, S) score tensor — OOMs at
+# S >= 6000 on 24GB GPUs. SDPA dispatches to memory-efficient kernels.
+# musique prompts run ~6-7K tokens (10 docs × ~600 + prefix/query), so default
+# to SDPA. Override via CACHEBLEND_ATTN_IMPL=eager only for short-context tests.
+_ATTN_IMPL = os.environ.get('CACHEBLEND_ATTN_IMPL', 'sdpa')
 
 # Mistral-7B has 32 layers — used when mock model is enabled (no real model loaded).
 _MOCK_NUM_LAYERS = 32
@@ -181,7 +186,7 @@ class LLM:
             self._device = torch.device('cpu')
         else:
             from cacheblend import LayerwiseModel
-            self._lw = LayerwiseModel(model, dtype=_DTYPE)
+            self._lw = LayerwiseModel(model, dtype=_DTYPE, attn_implementation=_ATTN_IMPL)
             self._tokenizer = self._lw.tokenizer
             num_layers = self._lw.num_layers
             attn0 = self._lw._inner.layers[0].self_attn

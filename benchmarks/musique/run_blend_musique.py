@@ -18,6 +18,9 @@ Env vars (forwarded to the shim):
   CACHEBLEND_DTYPE            'float16' or 'float32' (default: float16)
   CACHEBLEND_CHECK_LAYER      check_layer for fuse_selective (default 1)
   CACHEBLEND_RECOMP_RATIO     default recompute ratio (default 0.15)
+  CACHEBLEND_ATTN_IMPL        attn_implementation for HF model (default 'sdpa';
+                              musique prompts hit ~7K tokens — eager OOMs on
+                              24GB GPUs)
   CACHEBLEND_MUSIQUE_N        if set, monkey-patch utils.load_dataset to slice
                               [:N] before blend_musique.py imports it. The
                               original file is untouched; we only intercept the

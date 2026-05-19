@@ -1,0 +1,42 @@
+[run_blend_musique] cwd: /workspace/cacheblend-hf-v4/benchmarks/musique
+[run_blend_musique] vllm shim: /workspace/cacheblend-hf-v4/benchmarks/musique/_shim/vllm
+[run_blend_musique] mock model: 0
+[run_blend_musique] device: auto
+[run_blend_musique] dtype: float16
+[run_blend_musique] check_layer: 1
+[run_blend_musique] recomp_ratio: 0.15
+[run_blend_musique] running: /workspace/cacheblend-hf-v4/benchmarks/musique/blend_musique.py
+──────────────────────────────────────────────────────────────────────
+Loading dataset: inputs/musique_s.json
+[run_blend_musique] CACHEBLEND_MUSIQUE_N=5 → slicing dataset to first 5 examples
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:02<00:05,  2.95s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:05<00:02,  2.74s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:07<00:00,  2.45s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:07<00:00,  2.55s/it]
+Cached generation: Exeter College, Oxford.
+TTFT with cache: 0.593625626526773
+Normal generation: The author of Hannibal and Scipio was educated at Exeter College, Oxford.
+TTFT with full prefill: 2.186785541474819
+------------
+Cached generation: Charles county
+TTFT with cache: 0.5443755956366658
+Normal generation: Charles county
+TTFT with full prefill: 2.1179039226844907
+------------
+Cached generation: Michelle Phillips' child.
+TTFT with cache: 0.5396599667146802
+Normal generation: Michelle Phillips' child.
+TTFT with full prefill: 2.140364794060588
+------------
+Cached generation: Born in Missouri.
+TTFT with cache: 0.5521810678765178
+Normal generation: Tim Dubois was born in McDonald County, Missouri.
+TTFT with full prefill: 2.1388185024261475
+------------
+Cached generation: Go Down Records
+TTFT with cache: 0.5458721499890089
+Normal generation: Asian man records
+TTFT with full prefill: 2.166549722664058
+------------
+---------------Result Summary---------------------
+TTFT with cache: 0.5551428813487291
+TTFT with full prefill: 2.1500844966620205
+F1 with cache: 0.49945054945054945
+F1 with full prefill: 0.6605616605616605

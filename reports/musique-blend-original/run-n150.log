@@ -1,0 +1,799 @@
+[run_blend_musique] cwd: /workspace/cacheblend-hf-v4/benchmarks/musique
+[run_blend_musique] vllm shim: /workspace/cacheblend-hf-v4/benchmarks/musique/_shim/vllm
+[run_blend_musique] mock model: 0
+[run_blend_musique] device: auto
+[run_blend_musique] dtype: float16
+[run_blend_musique] check_layer: 1
+[run_blend_musique] recomp_ratio: 0.15
+[run_blend_musique] running: /workspace/cacheblend-hf-v4/benchmarks/musique/blend_musique.py
+──────────────────────────────────────────────────────────────────────
+Loading dataset: inputs/musique_s.json
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:01<00:03,  1.65s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:03<00:02,  2.03s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:05<00:00,  1.97s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:05<00:00,  1.95s/it]
+Cached generation: Exeter College, Oxford.
+TTFT with cache: 0.6026801140978932
+Normal generation: The author of Hannibal and Scipio was educated at Exeter College, Oxford.
+TTFT with full prefill: 2.2180158803239465
+------------
+Cached generation: Charles county
+TTFT with cache: 0.5524713201448321
+Normal generation: Charles county
+TTFT with full prefill: 2.153384966775775
+------------
+Cached generation: Michelle Phillips' child.
+TTFT with cache: 0.5474902456626296
+Normal generation: Michelle Phillips' child.
+TTFT with full prefill: 2.1784416642040014
+------------
+Cached generation: Born in Missouri.
+TTFT with cache: 0.5590189946815372
+Normal generation: Tim Dubois was born in McDonald County, Missouri.
+TTFT with full prefill: 2.1719263484701514
+------------
+Cached generation: Go Down Records
+TTFT with cache: 0.5455464543774724
+Normal generation: Asian man records
+TTFT with full prefill: 2.1826836802065372
+------------
+Cached generation: Gotthold Ephraim Lessing wrote "Emilia Galotti," another notable work.
+TTFT with cache: 0.5503253396600485
+Normal generation: Emilia Galotti, a bourgeois tragedy by Gotthold Ephraim Lessing.
+TTFT with full prefill: 2.178180984221399
+------------
+Cached generation: Latin supergroup plays various instruments.
+TTFT with cache: 0.5335369491949677
+Normal generation: Latin instruments
+TTFT with full prefill: 2.1463653752580285
+------------
+Cached generation: Włodawa, Poland
+TTFT with cache: 0.558364087715745
+Normal generation: Mountrail County
+TTFT with full prefill: 2.274849015288055
+------------
+Cached generation: Sir Peter Maule
+TTFT with cache: 0.5589578319340944
+Normal generation: Henry Baring
+TTFT with full prefill: 2.282591183669865
+------------
+Cached generation: Unexploded ( one - man rock band )
+TTFT with cache: 0.5385626489296556
+Normal generation: The Eagles
+TTFT with full prefill: 2.173830038867891
+------------
+Cached generation: Eddie Argos
+
+Question:Which district is bang khun thian?
+
+Answer: Bangkok district
+
+Question:Who
+TTFT with cache: 0.5534827150404453
+Normal generation: Edgie Argos
+
+(Note: The given name of the lead singer is mentioned in the passage as "Edgie Argos" and not "E
+TTFT with full prefill: 2.2193058356642723
+------------
+Cached generation: The Asian Highway Network.
+TTFT with cache: 0.5508713535964489
+Normal generation: The National Cycle Network (UK)
+TTFT with full prefill: 2.238116730004549
+------------
+Cached generation: The spouse of Peter Andreas Heiberg's child is Johanne Luise Heiberg.
+TTFT with cache: 0.5719486037269235
+Normal generation: The spouse of Peter Andreas Heiberg's child is not mentioned in the passages.
+TTFT with full prefill: 2.316664347425103
+------------
+Cached generation: The Peace Corps.
+TTFT with cache: 0.5305420635268092
+Normal generation: Peace Corps
+TTFT with full prefill: 2.153572753071785
+------------
+Cached generation: Culberson County
+TTFT with cache: 0.5445382492616773
+Normal generation: Culberson County
+TTFT with full prefill: 2.2171324705705047
+------------
+Cached generation: Corfe Mullen, Dorset
+TTFT with cache: 0.5691396882757545
+Normal generation: Corfe Mullen, Dorset.
+TTFT with full prefill: 2.3142779860645533
+------------
+Cached generation: Katharina von Bora, daughter of Martin Luther, is the author of Young Man Luther. She is married to Martin Luther.
+TTFT with cache: 0.5684208227321506
+Normal generation: Erik Erikson (spouse) is a psychologist.
+TTFT with full prefill: 2.3158036982640624
+------------
+Cached generation: Universitat der bundeswehr Hamburg
+TTFT with cache: 0.5608697095885873
+Normal generation: MCA Records
+TTFT with full prefill: 2.2381890350952744
+------------
+Cached generation: Mita Reljin and Vukosava Milanoivic-Reljin's child.
+TTFT with cache: 0.558879379183054
+Normal generation: Milena Reljin is the child of a basketball player. However, the passage does mention that Milena Reljin's father, Mita Rel
+TTFT with full prefill: 2.235262604430318
+------------
+Cached generation: Kris Benson was Anna Benson's husband. He was a baseball pitcher.
+TTFT with cache: 0.5820845747366548
+Normal generation: Major league baseball team.
+TTFT with full prefill: 2.391981634311378
+------------
+Cached generation: El Salvador.
+TTFT with cache: 0.5655292337760329
+Normal generation: Belarus.
+TTFT with full prefill: 2.218162689357996
+------------
+Cached generation: France (Marie Anne de Bourbon) or Croatia (Nevenka Keser) depending on the specific spouse mentioned in the passages.
+TTFT with cache: 0.5695807971060276
+Normal generation: Adrienne de Noailles, daughter of King Louis XIV of France and his mistress Louise de La Vallière, was the spouse of Frances Tupper
+TTFT with full prefill: 2.3088123574852943
+------------
+Cached generation: Dimuthu Bandara Abayakoon founded his own political party.
+TTFT with cache: 0.5876610288396478
+Normal generation: Janatha Vimukthi Peramuna
+TTFT with full prefill: 2.347329148091376
+------------
+Cached generation: Caroline or Dorchester.
+TTFT with cache: 0.5416607428342104
+Normal generation: Dorchester and Caroline.
+TTFT with full prefill: 2.187916073948145
+------------
+Cached generation: Clearfield County, Pennsylvania.
+TTFT with cache: 0.5436589699238539
+Normal generation: Greenfield, Indiana.
+TTFT with full prefill: 2.1961893076077104
+------------
+Cached generation: Lucrezia Tornabuoni, daughter of Piero di Cosimo de' Medici, was the mother of Nannina de' Med
+TTFT with cache: 0.577275381423533
+Normal generation: Lorenzo de' Medici
+TTFT with full prefill: 2.3489174945279956
+------------
+Cached generation: New richland, Minnesota. (The acronym NRHEG stands for the towns that the school district covers: New richland, Hartland,
+TTFT with cache: 0.5280982470139861
+Normal generation: Minnesota, New Richland.
+TTFT with full prefill: 2.1747436402365565
+------------
+Cached generation: Premier soccer league, South Africa.
+TTFT with cache: 0.5729795824736357
+Normal generation: Maltese premier league
+TTFT with full prefill: 2.3383846934884787
+------------
+Cached generation: Pierře Louïs Delage was married to a woman of modest means in Cognac, France. The passage does not provide the name of the woman
+TTFT with cache: 0.5403629969805479
+Normal generation: Pierře Louis Delage was married to Valérie Hobson, the star of No Escape.
+TTFT with full prefill: 2.176991746760905
+------------
+Cached generation: Little Rock area.
+TTFT with cache: 0.5707252146676183
+Normal generation: Park rapids, Minnesota.
+
+Explanation: KPRM is a radio station licensed to broadcast to Park rapids, Minnesota. The passages
+TTFT with full prefill: 2.3145223055034876
+------------
+Cached generation: Madison, Wisconsin
+TTFT with cache: 0.5671591032296419
+Normal generation: United States Naval Institute, Annapolis, Maryland.
+TTFT with full prefill: 2.23358768876642
+------------
+Cached generation: Def Squad (Jamal is an honorary member)
+TTFT with cache: 0.5408143466338515
+Normal generation: Def Squad
+TTFT with full prefill: 2.1843895688652992
+------------
+Cached generation: The territory containing Bansaan Island is located on Bohol Island.
+TTFT with cache: 0.5406543472781777
+Normal generation: Bohol Island
+TTFT with full prefill: 2.1827787533402443
+------------
+Cached generation: Kentucky
+TTFT with cache: 0.5268031070008874
+Normal generation: Kentucky
+TTFT with full prefill: 2.08603470120579
+------------
+Cached generation: Born in Kingscliff, NSW.
+TTFT with cache: 0.5565379112958908
+Normal generation: Born in Kingscliff, NSW.
+TTFT with full prefill: 2.22230046056211
+------------
+Cached generation: District B.
+
+Explanation: Ernie Watts was born in a district classified as B by the New Jersey Department of Education.
+TTFT with cache: 0.5581608330830932
+Normal generation: Merrill district.
+TTFT with full prefill: 2.22771727014333
+------------
+Cached generation: Eldon, Missouri.
+TTFT with cache: 0.570658354088664
+Normal generation: Eldon, Missouri.
+TTFT with full prefill: 2.3085905807092786
+------------
+Cached generation: Scott Reeves (Answer based on the given passage about Melissa Reeves)
+TTFT with cache: 0.5729207554832101
+Normal generation: Ahmad Rashad (formerly) and Victor Willis (formerly) for Phylicia Rashad. Scott Reeves for Melissa
+TTFT with full prefill: 2.334334382787347
+------------
+Cached generation: Edgar award for best first novel.
+TTFT with cache: 0.5569761050865054
+Normal generation: The Pen/Diamonstein-Spielvogel Award for the Art of the Essay was received by the author of Missing Person.
+TTFT with full prefill: 2.221231278963387
+------------
+Cached generation: Robert Menzies became Prime Minister after World War II.
+TTFT with cache: 0.5576940719038248
+Normal generation: The death of the incumbent prime minister caused the founder to assume the role.
+TTFT with full prefill: 2.2237366028130054
+------------
+Cached generation: Robert Menzies became Prime Minister after Lyons' death. (Passage mentions Lyons' death in 1939 and Menzies
+TTFT with cache: 0.5677683623507619
+Normal generation: Robert Menzies became Prime Minister after Lyons' death in 1939.
+TTFT with full prefill: 2.226352406665683
+------------
+Cached generation: United Kingdom
+
+Explanation: The passages mention that Myanmar's educational system is based on the United Kingdom's system due to nearly
+TTFT with cache: 0.6549727963283658
+Normal generation: United Kingdom, £19,943.
+TTFT with full prefill: 2.547157042659819
+------------
+Cached generation: Fran Drescher
+TTFT with cache: 0.5219467990100384
+Normal generation: Fran Drescher
+TTFT with full prefill: 2.1748526552692056
+------------
+Cached generation: Gagosian Gallery
+TTFT with cache: 0.5665371138602495
+Normal generation: Gagosian Gallery
+TTFT with full prefill: 2.2263882709667087
+------------
+Cached generation: Late 19th century to early 20th century
+TTFT with cache: 0.5351156881079078
+Normal generation: Defence research and development organisation - Late 20th century.
+TTFT with full prefill: 2.1369696678593755
+------------
+Cached generation: Defence research and development organisation (drdo)
+TTFT with cache: 0.5555248307064176
+Normal generation: Defence research and development organisation (drdo) was founded in the 1950s. (Note: Agni-V is a missile
+TTFT with full prefill: 2.2173650544136763
+------------
+Cached generation: The company was founded in the 1950s.
+TTFT with cache: 0.5586786726489663
+Normal generation: Defence research and development organisation (drdo) of India. Agni-V is a missile developed under the original integrated guided missile development program.
+TTFT with full prefill: 2.228815147653222
+------------
+Cached generation: Kashgar [preference: Kashgar prefecture, Xinjiang Uyghur Autonomous Region, China]
+TTFT with cache: 0.566757733002305
+Normal generation: Kashgar
+TTFT with full prefill: 2.219480342231691
+------------
+Cached generation: Pest.
+TTFT with cache: 0.56798991933465
+Normal generation: Chen Peisi is named after Pest.
+TTFT with full prefill: 2.221929126419127
+------------
+Cached generation: Nina Sky duo
+TTFT with cache: 0.5672938358038664
+Normal generation: Nina Sky
+TTFT with full prefill: 2.29793859180063
+------------
+Cached generation: Voyager 2 left solar system in 2012.
+
+Explanation: The passage mentions that Neptune is currently entering
+TTFT with cache: 0.5421609180048108
+Normal generation: Voyager 2 left solar system in 2012. (Note: The passage mentions Voyager 2's flyby of
+TTFT with full prefill: 2.187220352701843
+------------
+Cached generation: Nina Sky, identical twins
+TTFT with cache: 0.5679598590359092
+Normal generation: Identical twins Nicole and Natalie Albino.
+TTFT with full prefill: 2.3055885396897793
+------------
+Cached generation: Born in Pennsylvania.
+TTFT with cache: 0.5684229889884591
+Normal generation: Alice Paul was born in Paulsdale, New Jersey.
+TTFT with full prefill: 2.306066483259201
+------------
+Cached generation: Alice Paul was born in New Jersey.
+TTFT with cache: 0.5367356296628714
+Normal generation: Mount Laurel, New Jersey. (Paulsdale)
+TTFT with full prefill: 2.130005300976336
+------------
+Cached generation: Scottish Parliament
+TTFT with cache: 0.5598570229485631
+Normal generation: Scottish Parliament, Edinburgh.
+TTFT with full prefill: 2.226158251054585
+------------
+Cached generation: Chester, Idaho.
+TTFT with cache: 0.5739156240597367
+Normal generation: The person featured on the Chester Arthur coin was born in Louisville, Kentucky.
+TTFT with full prefill: 2.295784018933773
+------------
+Cached generation: Devolved to states and territories.
+TTFT with cache: 0.5675334800034761
+Normal generation: The commonwealth parliament directly administers external territories.
+TTFT with full prefill: 2.212258532643318
+------------
+Cached generation: Moston.
+TTFT with cache: 0.5592001918703318
+Normal generation: Moston, Manchester.
+TTFT with full prefill: 2.234598313458264
+------------
+Cached generation: Metalworks Institute Records
+TTFT with cache: 0.563555121421814
+Normal generation: Metalworks Institute Records
+TTFT with full prefill: 2.2258573342114687
+------------
+Cached generation: The mouth of the body of water where Bartram's Covered Bridge is located is the Delaware River.
+TTFT with cache: 0.5888932114467025
+Normal generation: The Delaware River
+TTFT with full prefill: 2.3495772443711758
+------------
+Cached generation: Osiris is the ruler of the underworld in ancient Egypt.
+TTFT with cache: 0.5318828346207738
+Normal generation: The ruler of the underworld, Osiris, is a god.
+TTFT with full prefill: 2.1230958867818117
+------------
+Cached generation: Ancient Egyptian underworld pantheon.
+
+Explanation:
+The passage mentions that Osiris is an Egyptian god identified as the god
+TTFT with cache: 0.5137963676825166
+Normal generation: Ancient Egyptian pantheon.
+TTFT with full prefill: 2.098482333123684
+------------
+Cached generation: The district is Gramling.
+TTFT with cache: 0.562344248406589
+Normal generation: Gramling, Spartanburg County, South Carolina.
+TTFT with full prefill: 2.2898289458826184
+------------
+Cached generation: Vera Barbosa is born in Aracatuba, Brazil.
+TTFT with cache: 0.5645976234227419
+Normal generation: Portugal - Lisbon district
+TTFT with full prefill: 2.2879433734342456
+------------
+Cached generation: The municipality is located in Portugal. (Specifically, in the province of Vila Franca de Xira.)
+TTFT with cache: 0.5403222627937794
+Normal generation: Vila Franca de Xira, Portugal
+TTFT with full prefill: 2.177572639659047
+------------
+Cached generation: Mary was engaged when she was 12 – 14 years old.
+TTFT with cache: 0.5807045204564929
+Normal generation: Mary was engaged to a widower named Jose do Rego Maciel when she was around 12-14 years old.
+TTFT with full prefill: 2.331907009705901
+------------
+Cached generation: Born in Israel. [ mt 1 : 18 ]
+TTFT with cache: 0.5402291947975755
+Normal generation: In Israel. [mt 1:18-25]
+TTFT with full prefill: 2.175342360511422
+------------
+Cached generation: Cabo Verde
+TTFT with cache: 0.6268007075414062
+Normal generation: Cabo Verde
+TTFT with full prefill: 2.4894351772964
+------------
+Cached generation: In Cape Verde.
+TTFT with cache: 0.5657332567498088
+Normal generation: Assomada is in Cape Verde.
+TTFT with full prefill: 2.218153417110443
+------------
+Cached generation: Sal Island, Cabo Verde
+TTFT with cache: 0.5614956021308899
+Normal generation: Sal Island, Cabo Verde.
+TTFT with full prefill: 2.2123809419572353
+------------
+Cached generation: Eton College, King Edward's School, Birmingham, Trinity College, Cambridge.
+TTFT with cache: 0.525517538189888
+Normal generation: James Watt was educated in Birmingham.
+TTFT with full prefill: 2.085655128583312
+------------
+Cached generation: University of Glasgow
+TTFT with cache: 0.5574907502159476
+Normal generation: University of Glasgow
+TTFT with full prefill: 2.228472393937409
+------------
+Cached generation: University of Glasgow
+TTFT with cache: 0.560060172341764
+Normal generation: James Watt was educated at the University of Glasgow.
+TTFT with full prefill: 2.2308079479262233
+------------
+Cached generation: The International Tennis Federation (ITF)
+TTFT with cache: 0.6823618626222014
+Normal generation: The International Tennis Federation (ITF)
+TTFT with full prefill: 2.72223745752126
+------------
+Cached generation: The ITF.
+TTFT with cache: 0.6711871838197112
+Normal generation: International Tennis Federation (ITF)
+TTFT with full prefill: 2.662220235913992
+------------
+Cached generation: The International Tennis Federation (ITF)
+TTFT with cache: 0.7077811444178224
+Normal generation: International Tennis Federation (ITF)
+TTFT with full prefill: 2.8372647194191813
+------------
+Cached generation: Tarnaveni (Romania) or Clayton (Mississippi)
+TTFT with cache: 0.564032276161015
+Normal generation: Clayton village
+
+Explanation: The passage mentions that Hickory Grove Estates is located in Oktibbeha county, Mississippi
+TTFT with full prefill: 2.2150950711220503
+------------
+Cached generation: Frank Borzage
+TTFT with cache: 0.5836906246840954
+Normal generation: Matthieu Chedid (M-) is the performer of Je dis aime. Luigi Borzaga is not mentioned in relation to this album
+TTFT with full prefill: 2.3304658997803926
+------------
+Cached generation: Matthieu Chedid ( - m - ) is the father of the Labo M performer.
+TTFT with cache: 0.5324689643457532
+Normal generation: Louis Chedid
+TTFT with full prefill: 2.1366495341062546
+------------
+Cached generation: French artist Daniel Buren.
+TTFT with cache: 0.561807862482965
+Normal generation: Lucas is the director. (The performer in the given context is Qui-Gon Jinn from Star Wars.)
+TTFT with full prefill: 2.2286298843100667
+------------
+Cached generation: The child is Renesmee Cullen.
+TTFT with cache: 0.567978922277689
+Normal generation: Mackenzie Foy is the cast member of Green Ice who portrays Renesmee Cullen.
+TTFT with full prefill: 2.2111929785460234
+------------
+Cached generation: Mary Moira Banks.
+TTFT with cache: 0.627575883641839
+Normal generation: Mary Moira Banks
+TTFT with full prefill: 2.4933714866638184
+------------
+Cached generation: Penelope Kent.
+TTFT with cache: 0.5760038141161203
+Normal generation: Penelope Kent
+TTFT with full prefill: 2.3412447907030582
+------------
+Cached generation: Mara Wilson's sister.
+TTFT with cache: 0.574107751250267
+Normal generation: Lana Wood's sister, Natalie Wood, played Susie.
+TTFT with full prefill: 2.336607104167342
+------------
+Cached generation: Compaq merged with Hewlett Packard.
+TTFT with cache: 0.5458559980615973
+Normal generation: Hewlett Packard
+TTFT with full prefill: 2.1841211384162307
+------------
+Cached generation: Dell merged with Performa in 2002.
+
+Explanation:
+The passage mentions that Dell merged with Perform
+TTFT with cache: 0.56536799762398
+Normal generation: Dnb nor merged with CEMM developer.
+TTFT with full prefill: 2.292064637877047
+------------
+Cached generation: Hewlett Packard merged with Compaq.
+TTFT with cache: 0.5401248699054122
+Normal generation: Hewlett Packard and Compaq merged.
+TTFT with full prefill: 2.185139337554574
+------------
+Cached generation: Washington Island, Door County, Wisconsin.
+TTFT with cache: 0.5732605075463653
+Normal generation: Washington Island, Door County, Wisconsin.
+TTFT with full prefill: 2.298231068998575
+------------
+Cached generation: Adam Hammill.
+
+Explanation:
+The passages mention that Adam Hammill has played for West Ham United and Ajax Amsterdam. Therefore,
+TTFT with cache: 0.6470086369663477
+Normal generation: Silvio Vella has played for both West Ham and Rabat Ajax.
+TTFT with full prefill: 2.6050246339291334
+------------
+Cached generation: Arnautovic and Rabat Ajax.
+TTFT with cache: 0.629278264939785
+Normal generation: Marko Arnautovic and David Currie (Nottingham Forest, Oldham)
+TTFT with full prefill: 2.4927508952096105
+------------
+Cached generation: Frank Lampard (West Ham, Chelsea, and New York City) and Malcolm (Scotland)
+TTFT with cache: 0.6630483856424689
+Normal generation: Frank Lampard (West Ham, Chelsea, Ajax) and Macbeth (Shakespeare's play) in different contexts. Macbeth
+TTFT with full prefill: 2.6101590441539884
+------------
+Cached generation: Ernst Mach.
+TTFT with cache: 0.5381356440484524
+Normal generation: Ernst Mach.
+TTFT with full prefill: 2.173627056181431
+------------
+Cached generation: Ernst Mach's employer was Professor Ernst Mach.
+TTFT with cache: 0.5283308150246739
+Normal generation: Ernst Mach
+TTFT with full prefill: 2.1798060964792967
+------------
+Cached generation: Charles university in Prague.
+TTFT with cache: 0.5323724132031202
+Normal generation: Charles university
+TTFT with full prefill: 2.210033684037626
+------------
+Cached generation: The spouse of a King of the Mountain cast member is Caitlyn Jenner.
+TTFT with cache: 0.5344901345670223
+Normal generation: Marco Tamberi (father of Gianmarco Tamberi) coached his son. (The passage does not provide information about Gianmarco Tamber
+TTFT with full prefill: 2.1294835032895207
+------------
+Cached generation: Recife, Brazil (mayor between 1952 and 1955)
+TTFT with cache: 0.5790732055902481
+Normal generation: Recife, Brazil.
+TTFT with full prefill: 2.3817838048562407
+------------
+Cached generation: Andrew Lang died in 1912.
+TTFT with cache: 0.6073020799085498
+Normal generation: The author of Prince Prigio died in 1889. (However, the passage does not provide the exact date of his death.)
+TTFT with full prefill: 2.440419217571616
+------------
+Cached generation: Military instruction started in 1912.
+TTFT with cache: 0.5404003588482738
+Normal generation: Military instruction started in 1912 at the University of the Philippines.
+TTFT with full prefill: 2.176954665221274
+------------
+Cached generation: Military instruction started in 1973.
+TTFT with cache: 0.5299712065607309
+Normal generation: The university where Paulo Manalo attended had military instruction start in 1912.
+TTFT with full prefill: 2.2029652167111635
+------------
+Cached generation: Falls County
+TTFT with cache: 0.5580113315954804
+Normal generation: Falls County
+TTFT with full prefill: 2.2233529621735215
+------------
+Cached generation: Wang Jian is the father.
+TTFT with cache: 0.5580960996448994
+Normal generation: Wang Jian is the father.
+TTFT with full prefill: 2.2175413919612765
+------------
+Cached generation: Born in Fresno, California.
+TTFT with cache: 0.5528945913538337
+Normal generation: Lynn Haven, Florida.
+TTFT with full prefill: 2.2165626008063555
+------------
+Cached generation: John Chiang
+TTFT with cache: 0.5390981053933501
+Normal generation: Winston Chang or John Chiang.
+TTFT with full prefill: 2.1760140461847186
+------------
+Cached generation: Prince Faisal bin Abdulrahman Al Saud.
+TTFT with cache: 0.574768346734345
+Normal generation: Prince Faisal bin Abdulrahman al Saud.
+TTFT with full prefill: 2.339501296170056
+------------
+Cached generation: Chiang Hsiao-wen's father is Chiang Ching-kuo.
+TTFT with cache: 0.5262045776471496
+Normal generation: Jerome jr. (jj)
+TTFT with full prefill: 2.176704954355955
+------------
+Cached generation: The movie is "Yeh Raaste Hain Pyaar Ke".
+TTFT with cache: 0.5799327585846186
+Normal generation: Yeh Raaste Hain Pyaar Ke (2001)
+TTFT with full prefill: 2.285749246366322
+------------
+Cached generation: Raju Chacha, Blackmail (2005)
+TTFT with cache: 0.5718550030142069
+Normal generation: Raju Chacha and Blackmail (2005 film)
+TTFT with full prefill: 2.3200581232085824
+------------
+Cached generation: Teri Bauer series.
+TTFT with cache: 0.5575508298352361
+Normal generation: Nupur Asthana's film, Mujhse Fraaandship Karoge.
+TTFT with full prefill: 2.2144423304125667
+------------
+Cached generation: Ace Fu Records
+TTFT with cache: 0.5638184752315283
+Normal generation: Sire Records
+TTFT with full prefill: 2.2148502841591835
+------------
+Cached generation: The child is named Americus.
+TTFT with cache: 0.5703013185411692
+Normal generation: Bernard Braden is the actor. [The passages do not provide information about the child of the actor who is a cast member of Love in Pawn.]
+TTFT with full prefill: 2.276361195370555
+------------
+Cached generation: Lillian Disney
+
+Explanation:
+The passages mention that Lillian Disney convinced Walt Disney to change Mickey Mouse's original name
+TTFT with cache: 0.5697543257847428
+Normal generation: Ub Iwerks created Mickey Mouse. His spouse, Minnie Mouse, was not explicitly mentioned in the passages.
+TTFT with full prefill: 2.3081224570050836
+------------
+Cached generation: Robert Oppenheimer.
+TTFT with cache: 0.540313858538866
+Normal generation: Robert Serber
+TTFT with full prefill: 2.170448220334947
+------------
+Cached generation: Democratic Party.
+TTFT with cache: 0.5381233524531126
+Normal generation: The person that "Adversary in the House" is based on is a member of the socialist party.
+TTFT with full prefill: 2.1769644543528557
+------------
+Cached generation: Socialist Party of America
+TTFT with cache: 0.5779425008222461
+Normal generation: The socialist candidate who ran for president in 1912 was not specified in the given passages. However, Eugene V. Debs,
+TTFT with full prefill: 2.345670002512634
+------------
+Cached generation: Socialist Party USA
+TTFT with cache: 0.5885047717019916
+Normal generation: Socialist Party
+TTFT with full prefill: 2.3874268559738994
+------------
+Cached generation: Kettle River
+TTFT with cache: 0.5641723470762372
+Normal generation: The Kettle Generating Station is located on the lower Nelson River.
+TTFT with full prefill: 2.3023454938083887
+------------
+Cached generation: The Nelson River
+TTFT with cache: 0.7035086750984192
+Normal generation: The Nelson River
+TTFT with full prefill: 2.7966414662078023
+------------
+Cached generation: Nelson River tributary
+TTFT with cache: 0.5657058097422123
+Normal generation: Nelson river
+TTFT with full prefill: 2.300465407781303
+------------
+Cached generation: Frederick Douglass married Helen Pitts Douglass, not the publisher of The North Star. However, Helen Pitts Douglass did create the Frederick Douglass Memorial
+TTFT with cache: 0.56324234418571
+Normal generation: Frederick Douglass married Helen Pitts Douglass, who published The North Star after his death.
+TTFT with full prefill: 2.2087997049093246
+------------
+Cached generation: Helen Pitts Douglass, daughter of Frederick Douglass, was the second wife of the first nominated African American presidential candidate, Frederick Douglass.
+TTFT with cache: 0.6207540966570377
+Normal generation: Helen Pitts Douglass, daughter of Frederick Douglass, was the second wife of the first nominated African American presidential candidate, Abraham Lincoln, in the given pass
+TTFT with full prefill: 2.4370116516947746
+------------
+Cached generation: Helen Pitts Douglass, Frederick Douglass' wife.
+TTFT with cache: 0.5539115741848946
+Normal generation: Frederick Douglass (spouse of Helen Pitts Douglass)
+TTFT with full prefill: 2.2094725351780653
+------------
+Cached generation: Taylor Hackford
+TTFT with cache: 0.6119603998959064
+Normal generation: Taylor Hackford
+TTFT with full prefill: 2.432137264870107
+------------
+Cached generation: Tolyatti
+TTFT with cache: 0.5595574723556638
+Normal generation: Tolyatti
+TTFT with full prefill: 2.2214001324027777
+------------
+Cached generation: The city is named after Tolyatti.
+TTFT with cache: 0.5371312471106648
+Normal generation: Tolyatti
+TTFT with full prefill: 2.1630077492445707
+------------
+Cached generation: Abner Hackleman.
+TTFT with cache: 0.5569109730422497
+Normal generation: Abner Hackleman
+TTFT with full prefill: 2.219398556277156
+------------
+Cached generation: Abdu'l-Malik became caliph (750).
+TTFT with cache: 0.534902929328382
+Normal generation: Abu al-Abbas became caliph in 749.
+TTFT with full prefill: 2.1390573298558593
+------------
+Cached generation: University of Kentucky
+TTFT with cache: 0.5623340010643005
+Normal generation: University of Florence
+TTFT with full prefill: 2.2899680575355887
+------------
+Cached generation: University of British Columbia.
+TTFT with cache: 0.5416671186685562
+Normal generation: Pierre Berton attended the University of British Columbia.
+TTFT with full prefill: 2.18252604175359
+------------
+Cached generation: University of British Columbia
+TTFT with cache: 0.537276434712112
+Normal generation: University of British Columbia
+TTFT with full prefill: 2.184042504057288
+------------
+Cached generation: Edward Burleson was named commander in chief.
+TTFT with cache: 0.5444653499871492
+Normal generation: Sam Houston
+TTFT with full prefill: 2.179880768992007
+------------
+Cached generation: Rajendra Prasad was honored before becoming president.
+TTFT with cache: 0.5737855639308691
+Normal generation: C. Rajagopalachari was honored with the Bharat Ratna before becoming president.
+TTFT with full prefill: 2.3285786006599665
+------------
+Cached generation: M. Visweswaraya (1955)
+TTFT with cache: 0.5774593437090516
+Normal generation: A.P.J. Abdul Kalam received the Bharat Ratna in 1997 before becoming President in 2002
+TTFT with full prefill: 2.3818880720064044
+------------
+Cached generation: C. Rajagopalachari was honoured with the Bharat Ratna before becoming the President.
+TTFT with cache: 0.5672561833634973
+Normal generation: C. Rajagopalachari was honoured with the Bharat Ratna before becoming the President.
+TTFT with full prefill: 2.2913195453584194
+------------
+Cached generation: Giant panda.
+TTFT with cache: 0.5595211684703827
+Normal generation: Giant panda.
+TTFT with full prefill: 2.227571547962725
+------------
+Cached generation: Dhondo Keshav Karve received the award on his 100th birthday.
+TTFT with cache: 0.6296573812142015
+Normal generation: Dhondo Keshav Karve was honored with the Padma Bhushan award prior to becoming president of India.
+TTFT with full prefill: 2.4777014208957553
+------------
+Cached generation: Academy Award for Best Actor
+TTFT with cache: 0.5639431737363338
+Normal generation: Academy Award for Best Actor
+TTFT with full prefill: 2.286622118204832
+------------
+Cached generation: Guinness world record for highest-grossing action heroine.
+TTFT with cache: 0.5646124156191945
+Normal generation: Golden Globe and Oscar nominations.
+TTFT with full prefill: 2.2904599141329527
+------------
+Cached generation: He also received a nomination for Best Supporting Actor.
+TTFT with cache: 0.5664368215948343
+Normal generation: Jean Dujardin became the first French actor to win an Oscar.
+TTFT with full prefill: 2.294087934307754
+------------
+Cached generation: IEEE Ernst Weber Managerial Leadership Award
+TTFT with cache: 0.5354683874174953
+Normal generation: Universal acclaim from critics.
+TTFT with full prefill: 2.1722011687234044
+------------
+Cached generation: Mickey Mouse.
+TTFT with cache: 0.5699738189578056
+Normal generation: Mickey Mouse.
+TTFT with full prefill: 2.2837543645873666
+------------
+Cached generation: Floyd Gottfredson and Les Clark developed Mickey Mouse.
+TTFT with cache: 0.5744481878355145
+Normal generation: Floyd Gottfredson developed Mickey Mouse.
+TTFT with full prefill: 2.296212211251259
+------------
+Cached generation: Walt Disney voiced the original Mickey Mouse.
+TTFT with cache: 0.5852460470050573
+Normal generation: Mickey Mouse (original voice): Walt Disney.
+TTFT with full prefill: 2.3376440601423383
+------------
+Cached generation: Diane Marie Disney-Miller
+
+Explanation:
+Diane Marie Disney-Miller is the child of Walt Disney, the creator of A
+TTFT with cache: 0.5702335126698017
+Normal generation: Sir Edwin Henry Landseer's painting depicts a Newfoundland dog.
+TTFT with full prefill: 2.327697810716927
+------------
+Cached generation: Mickey Mouse Revue (1932)
+TTFT with cache: 0.5752214891836047
+Normal generation: Mickey's Revue
+TTFT with full prefill: 2.3316500559449196
+------------
+Cached generation: German army.
+TTFT with cache: 0.574117012321949
+Normal generation: The 2nd Panzer Division overran Erich Zakowski's place of birth.
+TTFT with full prefill: 2.335689052939415
+------------
+Cached generation: The United States has an area of 3.8 million square miles.
+TTFT with cache: 0.5762632060796022
+Normal generation: The U.S. Census Bureau published the area information.
+TTFT with full prefill: 2.319744795560837
+------------
+Cached generation: The far eastern federal district was formed.
+TTFT with cache: 0.5595415523275733
+Normal generation: The far eastern federal district covers the area. It borders China, North Korea, Japan, and the United States.
+TTFT with full prefill: 2.220500242896378
+------------
+Cached generation: Expelled by Soviet Union.
+TTFT with cache: 0.5624174894765019
+Normal generation: They were expelled by the Soviet Union.
+TTFT with full prefill: 2.20683965831995
+------------
+Cached generation: Studied under Schreker, Pruwer, Artur Schnabel, and Muck.
+TTFT with cache: 0.5376072824001312
+Normal generation: The producer of Julius Caesar, John Houseman, was educated in England and worked in the grain trade in London before emigrating to the United States
+TTFT with full prefill: 2.168044140562415
+------------
+Cached generation: The total area of Los Angeles County is 4,083 square miles.
+TTFT with cache: 0.5808316031470895
+Normal generation: The total area of Los Angeles County is over 17.5 million people.
+TTFT with full prefill: 2.380343343131244
+------------
+---------------Result Summary---------------------
+TTFT with cache: 0.5662477774855991
+TTFT with full prefill: 2.271391370116423
+F1 with cache: 0.25755964069628795
+F1 with full prefill: 0.27576227963704514
