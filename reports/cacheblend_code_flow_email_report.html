@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>CacheBlend HF 구현 코드 흐름 분석 보고서</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    color: #222;
+    background: #fafafa;
+    max-width: 920px;
+    margin: 24px auto;
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin: 0 0 6px 0; border-bottom: 2px solid #444; padding-bottom: 8px; }
+  h2 { font-size: 18px; margin-top: 28px; border-bottom: 1px solid #ccc; padding-bottom: 4px; color: #333; }
+  h3 { font-size: 15px; margin-top: 18px; color: #444; }
+  p, li { font-size: 14px; }
+  .meta { color: #666; font-size: 12px; margin-bottom: 18px; }
+  .summary-box {
+    background: #f1f6fb;
+    border-left: 4px solid #3a6ea5;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .warn-box {
+    background: #fff8e6;
+    border-left: 4px solid #d29922;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .ok-box {
+    background: #effaef;
+    border-left: 4px solid #2da44e;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  code, .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 12.5px; }
+  code { background: #eef1f5; padding: 1px 5px; border-radius: 3px; }
+  pre {
+    background: #1f2329;
+    color: #e6edf3;
+    padding: 12px 14px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 13px;
+    background: white;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 6px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f0f3f6; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .status-ok { color: #1f883d; font-weight: 600; }
+  .status-partial { color: #9a6700; font-weight: 600; }
+  .status-need { color: #c92a2a; font-weight: 600; }
+  .status-none { color: #6e7781; font-weight: 600; }
+  .footnote { color: #6e7781; font-size: 12px; margin-top: 30px; border-top: 1px solid #d0d7de; padding-top: 10px; }
+  ul, ol { padding-left: 22px; }
+  hr { border: 0; border-top: 1px solid #d0d7de; margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<h1>CacheBlend HF 구현 코드 흐름 분석 보고서</h1>
+<div class="meta">
+  Repository: <code>cacheblend-hf-v4</code> &middot;
+  Branch: <code>main</code> @ commit <code>4689713</code> &middot;
+  분석일: 2026-05-19 &middot;
+  대상 독자: CacheBlend 구현을 처음 보는 연구자/개발자
+</div>
+
+<div class="summary-box">
+  <strong>Executive Summary</strong>
+  <ul>
+    <li>이 repository 는 CacheBlend (EuroSys '25, paper §4 selective KV recompute) 알고리즘을 <strong>HuggingFace Transformers 위에 재구현</strong>한 v4 이다. 원본 구현은 <code>YaoJiayi/CacheBlend</code> (vLLM fork) 와 <code>LMCache/LMCache</code> (vLLM plugin).</li>
+    <li>핵심 라이브러리 코드는 <code>src/cacheblend/</code> 11 개 파일 (~1,650 LOC). 메인 알고리즘 모듈은 <code>fusor.py</code> (4 fuse 함수) + <code>hkvd.py</code> (deviation 측정) + <code>kv_store.py</code> (chunk 단위 캐시).</li>
+    <li>2 개의 selective recompute 구현이 공존: (1) <code>fuse_selective</code> (v4 초기, full forward + K/V hook merge), (2) <code>fuse_selective_lmc_parity</code> (sparse forward, paper §4 / LMCache 1:1 등가).</li>
+    <li>실험 드라이버는 <code>benchmarks/</code> 아래: Phase 6/7 (Musique), Loong cache-then-reverse, CacheBlend 공식 스크립트 포팅.</li>
+    <li><strong>대상 모델</strong>: Mistral-7B-Instruct-v0.2 + Llama-3.1-8B-Instruct. attention impl 은 <code>eager</code> 기본 (Phase 0-7 bit-exact 검증) / <code>sdpa</code> 옵션 (long context).</li>
+    <li><strong>검증된 것</strong>: paper §4 의 (a) pre-RoPE 저장 + retrieval 시 RoPE shift, (b) HKVD 수식, (c) top-K 선정, (d) sparse forward semantics, (e) Mistral Musique F1, (f) Llama-3.1-8B Loong F1 + HKVD boundary enrichment 3.13x. CPU 단위 테스트 8/8 PASS.</li>
+    <li><strong>아직 검증 필요</strong>: LMCache (vLLM) 바이너리 와의 prefill 결과 비트 비교 (인프라 부재로 불가능), Llama-3.1-8B Musique 의 CacheBlend < FullReuse 원인 (모델 의존성 vs 추가 버그).</li>
+    <li>이메일/PR 본문 으로 그대로 붙여 넣을 수 있는 self-contained HTML.</li>
+  </ul>
+</div>
+
+<h2>1. Repository 전체 구조</h2>
+
+<table>
+<tr><th>경로</th><th>역할</th></tr>
+<tr><td><code>src/cacheblend/</code></td><td>핵심 라이브러리 (11 파일). Pure Python + HF Transformers.</td></tr>
+<tr><td><code>benchmarks/</code></td><td>실험 드라이버 (run_phase6, run_loong, run_cacheblend_official) + dataset loader (<code>data/loong.py</code>) + metrics (<code>metrics/bootstrap.py</code>) + visualizer (<code>loong_hkvd_visualize.py</code>).</td></tr>
+<tr><td><code>external/CacheBlend/</code></td><td>원본 YaoJiayi/CacheBlend (read-only reference). <code>example/</code> 에 4 실험 스크립트 + <code>utils.py</code> F1/ROUGE-L 메트릭. <code>inputs/</code> 에 musique_s.json / wikimqa_s.json / samsum.json.</td></tr>
+<tr><td><code>external/LMCache/</code></td><td>LMCache fork (chjs/LMCache @ fix/cacheblend-vllm-v0.17.1-compat). 우리 fusor 의 1:1 비교 대상. 핵심: <code>lmcache/v1/compute/blend/blender.py</code> <code>process_qkv</code>.</td></tr>
+<tr><td><code>external/mydata/cacheblend_fig12/</code></td><td>외부 harness — Musique 200 개의 prompts.jsonl + token-level F1 metric (Phase 6/7 데이터 소스).</td></tr>
+<tr><td><code>tests/</code></td><td>pytest 단위 테스트 (8 파일). <code>test_fusor_lmc_parity.py</code> 가 LMCache parity 검증 (8/8 PASS).</td></tr>
+<tr><td><code>scripts/</code></td><td>인프라 helper. <code>eval_gate.py</code> (phase gate 평가), <code>diff_env.sh</code> (Mac/Pod 패키지 정합), <code>cost_track.py</code> (누적 비용 기록), <code>send_report.py</code> (Gmail SMTP).</td></tr>
+<tr><td><code>tasks/</code></td><td>Phase 0-8 명세 + gate JSON (1 phase = 1 task md, gate 조건 inline).</td></tr>
+<tr><td><code>gates/</code></td><td>scripts/eval_gate.py 가 생성하는 PASS/FAIL JSON 결과.</td></tr>
+<tr><td><code>reports/</code></td><td>Phase 별 보고서 (md) + per-example results.jsonl + summary.json + 시각화 PNG.</td></tr>
+<tr><td><code>docs/notes/v5-lessons.md</code></td><td>v4 진행 중 누적되는 lessons (현재 L31~L45, 15개). 다음 iteration v5 디자인 입력.</td></tr>
+<tr><td><code>CLAUDE.md / GOAL.md / README.md</code></td><td>프로젝트 의도 + 운영 절차.</td></tr>
+</table>
+
+<h3>1.1. <code>src/cacheblend/</code> 라이브러리 파일 (핵심)</h3>
+
+<table>
+<tr><th>파일</th><th>LOC</th><th>역할 (한 줄)</th></tr>
+<tr><td><code>__init__.py</code></td><td>~73</td><td>공개 API re-export. 외부 코드 는 <code>from cacheblend import LayerwiseModel, KVStore, fuse_*</code> 로 사용.</td></tr>
+<tr><td><code>model.py</code></td><td>~240</td><td><code>LayerwiseModel</code> 클래스 — HF causal LM 을 wrapping 하여 layer-by-layer forward + pre-RoPE K 캡처를 제공.</td></tr>
+<tr><td><code>chunker.py</code></td><td>~76</td><td><code>Chunk</code> dataclass + <code>chunk_texts</code> tokenizer wrapper + <code>fused_input_ids</code> / <code>chunk_offsets</code>. chunk_id 는 (text, token_ids) 의 SHA256 16자.</td></tr>
+<tr><td><code>kv_store.py</code></td><td>~126</td><td><code>KVStore</code> — OrderedDict 기반 LRU chunk KV 캐시. <code>put/get/has/evict_lru</code> 동기 API + Phase 4 의 <code>prefetch_chunk</code> async API.</td></tr>
+<tr><td><code>precompute.py</code></td><td>~123</td><td>2 함수: <code>precompute_chunk_kv</code> (per-chunk 독립 forward, chunk-local 0..L-1), <code>precompute_from_cache_prompt</code> (LMCache 식 full cache-prompt forward 후 per-chunk slice).</td></tr>
+<tr><td><code>rope.py</code></td><td>~65</td><td><code>apply_rope_shift</code> — 저장된 pre-RoPE K 에 fused global position 의 RoPE 를 적용. HF <code>apply_rotary_pos_emb</code> 를 그대로 호출.</td></tr>
+<tr><td><code>hkvd.py</code></td><td>~77</td><td><code>kv_deviation</code> (squared L2 per token, fp32 cast) + <code>select_top_k</code> (int(N*r), max 1, argsort ascending). LMCache <code>blender.py:89-101</code> 와 비트 등가 식.</td></tr>
+<tr><td><code>fusor.py</code></td><td>~651</td><td>핵심: <strong>5 fuse 함수</strong>. <code>fuse_full_recompute</code> / <code>fuse_full_reuse</code> / <code>fuse_selective</code> (v4 legacy) / <code>fuse_selective_lmc_parity</code> (paper §4 충실) / <code>fuse_prefix_cache</code>. 추가: <code>fuse_selective_pipelined</code> (Phase 4 async prefetch 래퍼).</td></tr>
+<tr><td><code>controller.py</code></td><td>~91</td><td><code>LoadingController</code> + <code>StorageProfile</code> enum (RAM/NVMe/SSD/SLOW) — storage 속도 따라 recompute_ratio 를 monotone 증가 시킴.</td></tr>
+<tr><td><code>tolerance.py</code></td><td>~93</td><td>4 tolerance category enum + <code>assert_logits_close</code>. Phase 시작 시 category freeze (retroactive 변경 금지).</td></tr>
+<tr><td><code>gradual.py</code></td><td>~38</td><td>Phase 8 stub. <code>GradualSchedule</code> dataclass + <code>LayerProfiler</code> / <code>SchedulePlanner</code> NotImplemented.</td></tr>
+<tr><td><code>runners.py</code></td><td>~353</td><td>mydata harness <code>CacheBlendRunner</code> ABC 의 5 서브클래스 — <code>FullRecomputeRunner</code> / <code>FullReuseRunner</code> / <code>PrefixCacheRunner</code> / <code>CacheBlendV4Runner</code> / <code>GradualV4Runner</code>. 각 runner 는 fusor 함수 호출 + greedy decode.</td></tr>
+</table>
+
+<h3>1.2. 실험 드라이버 (<code>benchmarks/</code>)</h3>
+
+<table>
+<tr><th>파일</th><th>역할</th></tr>
+<tr><td><code>run_phase6.py</code></td><td>Phase 6 (Mistral) / Phase 7 (Llama) 의 Musique 평가 — 4 runners × N samples. <code>--cb-impl {legacy, lmc_parity}</code> flag.</td></tr>
+<tr><td><code>run_loong.py</code></td><td>Loong cache-then-reverse 실험 (사용자 protocol). prefix + reversed chunks + question; HKVD capture + boundary enrichment.</td></tr>
+<tr><td><code>run_cacheblend_official.py</code></td><td>YaoJiayi/CacheBlend 원본 3 스크립트 (musique/wikimqa/samsum) 의 prompt 형식 1:1 포팅. (구현 완료, 실행 대기 상태.)</td></tr>
+<tr><td><code>verify_rope_recomputation.py</code></td><td>commit <code>de6d818</code> 의 검증 스크립트 — fuse_full_reuse 가 RoPE 를 fused position 에 재적용 함을 비트 등가 (diff=0) 로 확인.</td></tr>
+<tr><td><code>phase8_step1_profile.py</code></td><td>Phase 8 layer profiling (top-15% mass per layer). Step 1 완료 (mistral + llama8b), 사용자 검토 ① 대기.</td></tr>
+<tr><td><code>loong_hkvd_visualize.py</code></td><td>Loong 결과 의 HKVD vs chunk boundary matplotlib 시각화 (3 PNG).</td></tr>
+<tr><td><code>data/loong.py</code></td><td><code>load_loong()</code> — framolfese/Loong dataset loader, paper split, 11-doc filter.</td></tr>
+<tr><td><code>metrics/bootstrap.py</code></td><td><code>paired_bootstrap_ci</code> — 1000 회 paired bootstrap on F1 difference.</td></tr>
+<tr><td><code>run_eval.py</code> / <code>ttft.py</code> / <code>long_chunk_sanity.py</code> / <code>lmcache_hkvd_compare.py</code></td><td>보조 평가 스크립트 (Phase 1-5 시기).</td></tr>
+</table>
+
+<h2>2. CacheBlend 기본 개념 (처음 보는 사람용)</h2>
+
+<h3>2.1. KV cache 는 무엇이고 왜 중요한가</h3>
+<p>Transformer 의 attention 은 매 token 마다 모든 이전 token 의 Key (K) 와 Value (V) 를 참조한다. 한번 prefix 를 처리하면서 계산된 K/V 를 보존해 두면 다음 호출 에서 재계산을 피할 수 있다. 이를 <strong>KV cache</strong> 라고 부른다. vLLM/HF DynamicCache 등이 이를 구현한다.</p>
+
+<h3>2.2. 왜 chunk 순서가 바뀌면 단순 KV cache 재사용이 깨지는가</h3>
+<p>RoPE (Rotary Position Embedding) 가 적용된 K 는 "이 token 의 position 이 p" 라는 정보를 포함한다. Document A 를 position [0..100] 에서 prefill 하면 그 K 는 그 position 에 묶인 회전이 들어가 있다. A 를 새 prompt 의 position [500..600] 에 끼워 넣으면 RoPE 가 어긋나 attention 이 무의미해진다. 또한 chunk-local prefill 동안에는 다른 chunk 와의 cross-chunk attention 이 없었으므로 hidden_state 도 다르다 — 이 차이는 RoPE 와 무관하게 발생한다.</p>
+
+<h3>2.3. CacheBlend 가 이 문제를 해결하는 방식 (paper §4)</h3>
+<ol>
+  <li><strong>RoPE shift</strong> 또는 <strong>pre-RoPE 저장 + 재적용</strong> 으로 position mismatch 해소.</li>
+  <li>cross-chunk attention 으로 인한 hidden_state 차이의 정확한 보상은 비싸지만, 각 token 에 대한 "fresh K (cross-chunk attention 후) vs cached K (chunk-local)" 의 deviation 을 계산하면 <strong>차이가 큰 top-K token (HKVD)</strong> 만 fresh forward 가 의미. 나머지는 cached K/V 그대로 둠.</li>
+  <li>check_layer 에서 한번 deviation 측정 → top-K 선정 → 그 token 들만 후속 layer 에서 sparse forward 로 다시 계산. ratio 0.15 (15% recompute) 가 paper 의 default.</li>
+</ol>
+
+<h3>2.4. 우리 구현 의 접근 (HF Transformers 친화적)</h3>
+<ul>
+  <li>v4 초기 (<code>fuse_selective</code>) 는 <strong>HF 친화적 hook 디자인</strong>: full forward 유지하되 <code>k_proj</code>/<code>v_proj</code> output 의 non-HKVD position 만 cached 값으로 override. 코드 침습 최소.</li>
+  <li>이후 LMCache 1:1 비교에서 paper §4 의 sparse forward (Q 와 hidden_state 도 sparse) 와 의미적으로 다름을 발견. <strong><code>fuse_selective_lmc_parity</code></strong> 추가 — HF DecoderLayer 의 sub-module 을 manual 호출해서 check_layer 부터 Q[top_indices]/residual[top_indices] 슬라이싱 + sparse Q × full mixed K/V eager/SDPA attention. past_key_values 는 full-length 유지 (decode 호환).</li>
+</ul>
+
+<h2>3. 전체 실행 흐름</h2>
+
+<h3>3.1. 진입점 — 어떤 명령으로 실험이 시작되는가</h3>
+<pre>
+# Phase 6 (Mistral Musique 200, 4 runners)
+python benchmarks/run_phase6.py --n 200 \
+    --out reports/phase-6c-attachments \
+    --cb-impl lmc_parity
+
+# Phase 7 (Llama, 같은 driver)
+python benchmarks/run_phase6.py --n 200 \
+    --model meta-llama/Llama-3.1-8B-Instruct \
+    --out reports/phase-7c-attachments --cb-impl lmc_parity
+
+# Loong cache-then-reverse (사용자 protocol, Llama 128k)
+python benchmarks/run_loong.py --n 50 \
+    --out reports/loong-a100-50 \
+    --doc-tokens 4000 --max-model-len 131072 \
+    --ratios 0.0,0.15,1.0 --attn-impl sdpa
+
+# YaoJiayi/CacheBlend 원본 protocol 포팅 (드라이버 완료, 미실행)
+python benchmarks/run_cacheblend_official.py \
+    --dataset musique --n 150 \
+    --out reports/cb-official-musique
+</pre>
+
+<h3>3.2. ASCII 데이터 흐름</h3>
+<pre>
+CLI args (benchmarks/run_*.py)
+        |
+        v
+Dataset loader  --> mydata harness prompts.jsonl  (Phase 6/7)
+                --> framolfese/Loong (HF datasets)  (Loong)
+                --> external/CacheBlend/inputs/*.json (official)
+        |
+        v
+Prompt 구성  -->  [system, doc_1, ..., doc_N, question]  (Phase 6/7)
+              -->  [prefix, chunks (reversed), question]  (Loong eval)
+              -->  [INST_prefix, doc_1, ..., doc_N, query_INST]  (official)
+        |
+        v
+chunker.chunk_texts(tokenizer, [str, str, ...])
+        |
+        v
+        +-----> list[Chunk(text, token_ids, chunk_id=SHA256[:16])]
+        |
+        v
+LayerwiseModel.forward_layerwise(input_ids)   <-- model.py
+        |
+        +-----> k_proj forward-hook captures pre-RoPE K per layer
+        |
+        v
++-------+-----------+----------------+--------------------+
+| FullRecompute    | FullReuse      | CacheBlend         | PrefixCache       |
+| (no cache)       | (all chunks)   | r=0.15, CL=1       | (first chunk only)|
++------------------+----------------+--------------------+-------------------+
+        |                |                  |                    |
+        |        precompute_chunk_kv   precompute_chunk_kv   precompute_chunk_kv
+        |        (per chunk standalone forward, capture K/V)
+        |                |                  |                    |
+        |                v                  v                    v
+        |        KVStore.put(chunk_id, K_per_layer, V_per_layer)
+        |                |                  |                    |
+        v                v                  v                    v
+fuse_full_recompute  fuse_full_reuse  fuse_selective_lmc_parity  fuse_prefix_cache
+        |                |                  |                    |
+        +----+-----------+----+-------------+--------------------+
+             |                |
+             v                v
+       past_key_values   logits @ last position
+       (DynamicCache)
+             |
+             v
+       greedy decode (max_new_tokens, argmax loop, model(input_ids=next_id, past_kv))
+             |
+             v
+       generated text + ttft + total_seconds
+             |
+             v
+       F1 (compute_f1_against_aliases) / ROUGE-L
+             |
+             v
+       results.jsonl (per row: id, method, pred, gold, f1, ttft, ...)
+             |
+             v
+       summary.json (per_method means, paired bootstrap CI, failure subset,
+                    prompt length buckets, HKVD boundary enrichment)
+             |
+             v
+       reports/{phase-?-attachments}/   +   reports/{phase-?-report}.md
+</pre>
+
+<h3>3.3. 단계별 자세한 설명</h3>
+
+<h4>(a) Dataset 로드</h4>
+<ul>
+  <li><strong>Phase 6/7</strong>: <code>benchmarks/run_phase6.py:196-202</code> 가 <code>external/mydata/cacheblend_fig12/prompts.jsonl</code> (200 examples, MuSiQue 2-hop) 을 line-by-line JSON 로드.</li>
+  <li><strong>Loong</strong>: <code>benchmarks/data/loong.py:load_loong</code> 가 HF <code>datasets.load_dataset("framolfese/Loong", split="paper")</code> 호출 후 <code>min_docs=max_docs=11</code> filter. 결과 list[LoongExample].</li>
+  <li><strong>Official</strong>: <code>benchmarks/run_cacheblend_official.py</code> 의 <code>load_dataset</code> 가 <code>external/CacheBlend/inputs/{musique_s,wikimqa_s,samsum}.json</code> 를 json.load.</li>
+</ul>
+
+<h4>(b) Prompt 구성</h4>
+<table>
+<tr><th>Driver</th><th>Prompt 구조</th><th>Chunk 분할</th></tr>
+<tr><td>run_phase6.py</td><td><code>system + "\n\nDocument 1:\n{d_1}" + ... + "\n\nQuestion: {q}\nAnswer:"</code></td><td>8 chunks: 1 system + 6 docs + 1 question. <code>_build_chunks(tokenizer, ex)</code> (line 67-74).</td></tr>
+<tr><td>run_loong.py</td><td>cache prompt = forward order; eval prompt = <strong>reversed order</strong> + real question (cache prompt 는 dummy warmup)</td><td>13 chunks: 1 prefix + 11 docs (reverse) + 1 question. SEP <code>"# #"</code> 임베드.</td></tr>
+<tr><td>run_cacheblend_official.py</td><td>Mistral <code>[INST]</code>/<code>[/INST]</code> 토큰 prepend + prefix + docs + query suffix (musique/wikimqa); few-shot 형식 (samsum)</td><td>12 chunks: 1 prefix(+[INST]) + 10 docs + 1 query(+[/INST]). 토큰 ID 직접 build.</td></tr>
+</table>
+
+<h4>(c) Tokenization + Chunk 객체 생성</h4>
+<p><code>chunker.chunk_texts(tokenizer, [str, ...])</code> 가 각 string 을 독립적으로 <code>tokenizer(text, add_special_tokens=False)["input_ids"]</code> 로 tokenize → <code>Chunk(text, token_ids, chunk_id=SHA256[:16])</code>. chunk_id 는 같은 (text, token_ids) 에 대해 deterministic 이라 cache 와 eval prompt 간 일관 매칭 가능.</p>
+
+<h4>(d) Model wrapping</h4>
+<p><code>LayerwiseModel(model_name, dtype="float16", attn_implementation="eager"|"sdpa")</code> (model.py:46-77) 가 HF <code>AutoModelForCausalLM.from_pretrained</code> + tokenizer load. 매 layer 의 <code>self_attn.k_proj</code> 에 forward-hook 을 자동 설치 (<code>_install_k_proj_hooks</code>), 호출 후 <code>get_pre_rope_k(layer_idx)</code> 로 캡처된 pre-RoPE K 를 회수 가능.</p>
+
+<h4>(e) Cache population (chunk 별 pre-RoPE K/V 채우기)</h4>
+<ul>
+  <li><strong>Phase 6/7, official</strong>: <code>precompute_chunk_kv(layerwise_model, chunk)</code> (precompute.py:33-61) 가 각 chunk 를 <strong>standalone forward</strong> (position 0..L-1, chunk-local attention 만). v_proj 에 임시 hook 설치하여 V 도 capture. 결과를 KVStore.put.</li>
+  <li><strong>Loong</strong>: <code>precompute_from_cache_prompt(layerwise_model, chunks_in_cache_order, skip_chunk_ids={dummy_id})</code> (precompute.py:64-123) 가 <strong>한 번의 full forward</strong> 로 모든 chunk 의 K/V 를 cross-chunk attention 반영해서 capture. LMCache cache-population 과 의미 등가.</li>
+</ul>
+
+<h4>(f) Prefill fusion (5 전략)</h4>
+<table>
+<tr><th>전략</th><th>함수</th><th>핵심</th></tr>
+<tr><td>FullRecompute</td><td><code>fuse_full_recompute</code> (fusor.py:24-37)</td><td>cache 무시. 표준 <code>forward_layerwise</code> 호출.</td></tr>
+<tr><td>FullReuse</td><td><code>fuse_full_reuse</code> (fusor.py:40-116)</td><td>모든 chunk 의 cached K/V 를 k_proj/v_proj output 에 hook 주입 → HF 가 fused position 에 RoPE 재적용.</td></tr>
+<tr><td>Selective (legacy)</td><td><code>fuse_selective</code> (fusor.py:119-246)</td><td>check_layer 의 hook 은 observation 만 (HKVD 계산). check_layer+1..end 의 hook 이 non-HKVD position 만 cached 로 override. Q/hidden_state 는 항상 full.</td></tr>
+<tr><td><strong>Selective (LMCache parity)</strong></td><td><code>fuse_selective_lmc_parity</code> (fusor.py:298-674)</td><td>check_layer 부터 <strong>sparse forward</strong>: Q[top]/residual[top] 슬라이스. manual sub-module 호출 (input_layernorm → q/k/v_proj → SDPA(sparse Q × full mixed K/V) → o_proj → post_attn_layernorm → mlp). past_key_values 는 full-length 로 update.</td></tr>
+<tr><td>PrefixCache</td><td><code>fuse_prefix_cache</code> (fusor.py:294-359)</td><td>첫 chunk 만 cached K/V hook 으로 주입. 나머지 chunk 는 fresh.</td></tr>
+</table>
+
+<h4>(g) Greedy decode</h4>
+<p><code>run_phase6.py:_greedy_decode</code> (line 35-64) 가 prefill 의 last-position logit 에서 argmax 로 첫 token 결정 → <code>model(input_ids=next_id, past_key_values=past_kv, use_cache=True)</code> 루프. EOS 또는 max_new_tokens (default 32) 까지. <code>torch.inference_mode()</code> 필수 (없으면 autograd graph 누적으로 OOM, L40).</p>
+
+<h4>(h) Metric 계산</h4>
+<ul>
+  <li><strong>F1</strong>: <code>external/mydata/cacheblend_fig12/harness/metrics.py:compute_f1_against_aliases</code> — answer + answer_aliases 중 max. Tokenizer-based F1 (encode 후 token id overlap), paper convention 동일.</li>
+  <li><strong>Rouge-L</strong>: 같은 모듈 <code>compute_rouge_l</code> — <code>rouge_score</code> lib 의 rougeL fmeasure.</li>
+  <li><strong>Paired bootstrap CI</strong>: <code>benchmarks/metrics/bootstrap.py:paired_bootstrap_ci</code> — n_bootstrap=1000, seed=42. Gate 통과 조건: <code>ci_low > 0</code>.</li>
+</ul>
+
+<h4>(i) 결과 저장</h4>
+<p>각 driver 가 <code>reports/{phase-?-attachments}/results.jsonl</code> (per-row) + <code>summary.json</code> (집계) 생성. Phase 보고서 (<code>reports/phase-?-report.md</code>) 는 사람이 작성 또는 LLM 보조로 생성.</p>
+
+<h2>4. CacheBlend 단계 → 우리 코드 매핑 표</h2>
+
+<table>
+<tr><th>CacheBlend 개념 단계</th><th>현재 구현 파일</th><th>주요 함수/클래스</th><th>입력</th><th>출력</th><th>설명</th><th>확인 상태</th></tr>
+
+<tr>
+<td>Step A. 문서/청크 단위 prefix KV cache 저장</td>
+<td><code>src/cacheblend/precompute.py</code><br><code>src/cacheblend/kv_store.py</code></td>
+<td><code>precompute_chunk_kv</code><br><code>precompute_from_cache_prompt</code><br><code>KVStore.put</code></td>
+<td>Chunk (text + token_ids), LayerwiseModel</td>
+<td>per-layer (1, L, num_kv_heads*head_dim) pre-RoPE K + V, chunk_id 키로 KVStore 에 저장</td>
+<td>2 변형: standalone (chunk-local 0..L-1, Phase 6/7) vs from cache prompt (cross-chunk, Loong)</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>Step B. 새 요청에서 재사용 가능한 청크 탐색</td>
+<td><code>src/cacheblend/chunker.py</code><br><code>src/cacheblend/kv_store.py</code></td>
+<td><code>_stable_id(text, token_ids)</code><br><code>KVStore.has(chunk_id)</code></td>
+<td>chunk_id (SHA256 16자 hash of text+ids)</td>
+<td>cached entry 또는 KeyError</td>
+<td>cache hit 조건은 chunk_id 일치. eval prompt 에서 같은 chunk text+ids 를 재사용 하면 자동 hit.</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>Step C. hit 된 chunk KV cache 를 새 prompt 순서에 맞게 재조합</td>
+<td><code>src/cacheblend/fusor.py</code></td>
+<td><code>fuse_full_reuse</code> / <code>fuse_selective_lmc_parity</code> 내부의 K_override / K_stored 빌드 루프</td>
+<td>chunks (eval 순서, 가능하면 reversed), kv_store</td>
+<td>per-layer K_override (1, total_seq, hidden_kv) — chunk 별 slice 위치 에 cached K 배치</td>
+<td>chunk_offsets 로 fused 위치 계산 → K_override[li][:, start:end, :] = entry["K"][li]</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>Step D. position/RoPE mismatch 처리</td>
+<td><code>src/cacheblend/rope.py</code><br>HF <code>apply_rotary_pos_emb</code></td>
+<td><code>apply_rope_shift(K_pre, target_positions, lw_model)</code><br>또는 k_proj forward-hook + HF auto-apply</td>
+<td>pre-RoPE K, target position_ids</td>
+<td>post-RoPE K at target positions</td>
+<td>우리는 pre-RoPE 저장 + 재적용. LMCache 의 FusedRope kernel (post-RoPE 저장 + shift) 과 RoPE 가역성 으로 수학적 등가. <code>benchmarks/verify_rope_recomputation.py</code> 가 비트 등가 (diff=0) 검증.</td>
+<td><span class="status-ok">명확함</span> (검증 완료)</td>
+</tr>
+
+<tr>
+<td>Step E. 일부 token/layer 를 recompute 대상 으로 선정</td>
+<td><code>src/cacheblend/hkvd.py</code></td>
+<td><code>kv_deviation(K_fresh, K_old)</code><br><code>select_top_k(deviations, ratio)</code></td>
+<td>check_layer 의 fresh pre-RoPE K + cached pre-RoPE K (둘 다 (1, S, hidden_kv))</td>
+<td>top-K token index (int64, ascending sort)</td>
+<td>squared L2 per token, fp32. <code>int(N*ratio)</code>, <code>max(1)</code>, <code>torch.topk</code>, <code>torch.sort</code> ascending. LMCache <code>blender.py:89-101</code> 수식 동일.</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>Step F. selected hidden/key/value 갱신 (sparse forward 의 K/V 만 fresh)</td>
+<td><code>src/cacheblend/fusor.py</code></td>
+<td><code>fuse_selective_lmc_parity</code> 의 sparse layer loop (check_layer+1..n_layers-1)</td>
+<td>sparse hidden_state (length topk_num), full cached K_pre/V (모든 position)</td>
+<td>full-length mixed K/V cache: <code>k_full_li[top_indices] = k_sparse_fresh</code>, 나머지 cached_post_RoPE</td>
+<td>HF DecoderLayer 의 sub-module 을 manual 호출 (vLLM/LMCache base.py 와 동일 구조). SDPA attention 으로 OOM 회피.</td>
+<td><span class="status-ok">명확함</span> (CPU 단위 테스트 8/8 PASS)</td>
+</tr>
+
+<tr>
+<td>Step G. 최종 KV cache 로 decoding</td>
+<td><code>benchmarks/run_*.py</code></td>
+<td><code>_greedy_decode</code> / <code>_greedy_decode_continuation</code></td>
+<td>last logits + past_key_values (DynamicCache, full-length)</td>
+<td>generated text (max_new_tokens=32 또는 128)</td>
+<td>argmax loop, model(input_ids=next_id, past_kv) — 표준 HF generation.</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>Step H. baseline 대비 output/evaluation 비교</td>
+<td><code>external/mydata/cacheblend_fig12/harness/metrics.py</code><br><code>benchmarks/metrics/bootstrap.py</code></td>
+<td><code>compute_f1_against_aliases</code><br><code>compute_rouge_l</code><br><code>paired_bootstrap_ci</code></td>
+<td>predicted text + gold answers</td>
+<td>F1 (max over aliases), Rouge-L, paired 95% CI</td>
+<td>Gate 조건: <code>ci_low > 0</code> for "CB > FullReuse 통계적 유의".</td>
+<td><span class="status-ok">명확함</span></td>
+</tr>
+
+<tr>
+<td>(추가) Layer profiling / gradual schedule</td>
+<td><code>src/cacheblend/gradual.py</code><br><code>benchmarks/phase8_step1_profile.py</code></td>
+<td><code>GradualSchedule</code> dataclass<br><code>LayerProfiler</code> (NotImplemented)<br>step1 profile script</td>
+<td>per-layer top-15% deviation mass</td>
+<td>schedule.json (check_layers + per-layer ratios)</td>
+<td>Step 1 완료, Step 2-4 사용자 검토 대기.</td>
+<td><span class="status-partial">부분 확인</span> (Phase 8 진행 중)</td>
+</tr>
+
+<tr>
+<td>(추가) Storage-aware ratio 자동 조정</td>
+<td><code>src/cacheblend/controller.py</code></td>
+<td><code>LoadingController.decide_recompute_ratio</code></td>
+<td>StorageProfile (RAM/NVMe/SSD/SLOW) + base_ratio</td>
+<td>LoadingDecision (조정된 ratio + 상세)</td>
+<td>monotone 증가 (slow storage → higher ratio). 현재 평가 driver 에서 직접 호출 없음 — 모의 실험용.</td>
+<td><span class="status-partial">부분 확인</span></td>
+</tr>
+
+</table>
+
+<h2>5. 주요 코드 파일 상세 분석</h2>
+
+<h3>5.1. <code>src/cacheblend/model.py</code> &mdash; LayerwiseModel</h3>
+<ul>
+  <li><strong>역할</strong>: HF causal LM 을 wrapping. layer-by-layer forward 접근 + 매 layer 의 pre-RoPE K capture 를 제공.</li>
+  <li><strong>주요 메서드</strong>: <code>embed_tokens</code>, <code>compute_position_embeddings</code>, <code>build_causal_mask</code>, <code>prefill_layer(layer_idx, hidden_states, ...)</code>, <code>final_norm_and_lm_head</code>, <code>forward_layerwise(input_ids)</code>, <code>get_pre_rope_k(layer_idx)</code>.</li>
+  <li><strong>외부에서 호출</strong>: 모든 fuse_* 함수 + precompute_* 함수가 진입점.</li>
+  <li><strong>내부</strong>: <code>__init__</code> 가 <code>_install_k_proj_hooks()</code> 로 매 <code>layer.self_attn.k_proj</code> 에 forward-hook 설치 → 호출 시 <code>self._pre_rope_k[idx] = output.detach()</code> 저장.</li>
+  <li><strong>입력</strong>: <code>input_ids: torch.LongTensor (1, S)</code>, <code>use_cache: bool</code>.</li>
+  <li><strong>출력</strong>: <code>LayerwiseOutput(logits=(1, S, V), past_key_values=DynamicCache)</code>.</li>
+  <li><strong>CacheBlend 단계</strong>: Step A 의 forward + capture 기반 인프라.</li>
+  <li><strong>주의</strong>: <code>attn_implementation="eager"</code> 기본 (Phase 0-7 bit-exact 검증). long context 에서 <code>"sdpa"</code> 옵션 사용 (L45).</li>
+  <li><strong>헷갈리기 쉬운 점</strong>: HF 4.49 의 layer kwarg 는 <code>past_key_value</code> (singular). 우리 prefill_layer 도 singular 사용. plural 로 전달하면 silently **kwargs 로 빠져 cache 비어있게 됨 (LMCache parity 구현 도중 발견된 버그, commit <code>a14660c</code>).</li>
+</ul>
+
+<h3>5.2. <code>src/cacheblend/fusor.py</code> &mdash; 5 fuse 함수</h3>
+<ul>
+  <li><strong>역할</strong>: 핵심 알고리즘. prefill 시 KV cache 를 어떻게 활용할지 결정.</li>
+  <li><strong>공통 boundary safe-shortcut</strong> (L13): <code>ratio==0 → fuse_full_reuse</code>, <code>ratio>=1 → fuse_full_recompute</code>, <code>len(chunks)<=1 → fuse_full_recompute</code>. 코드 경로 동일 보장 으로 max_diff=0.</li>
+  <li><strong>fuse_full_reuse</strong>: 매 layer 별로 (1, total_seq, hidden_kv) 의 K_override / V_override 텐서 빌드 → chunk slice 채움 → <code>k_proj.register_forward_hook(lambda: return K_override[li])</code>. HF 의 <code>apply_rotary_pos_emb</code> 이 hook 결과에 fused position 의 RoPE 적용.</li>
+  <li><strong>fuse_selective_lmc_parity</strong> (~376 LOC, fusor.py:298-674): 4 단계 — (1) boundary shortcut, (2) full K_stored_pre/V_stored 빌드, (3) <strong>layers 0..check_layer-1: full forward</strong> 표준 <code>inner.layers[li](...)</code>, (4) <strong>layer check_layer: manual</strong> input_layernorm → q/k/v_proj → kv_deviation → top-K select → 마지막 position force-include → K mixed (cached@non-top + fresh@top) → SDPA(sparse Q × full mixed K) → o_proj → residual → post_attn_layernorm → mlp, (5) <strong>layers check_layer+1..end: manual sparse</strong> 동일 흐름. past_key_values 는 매 layer 에서 full-length 로 update.</li>
+  <li><strong>입력</strong>: layerwise_model, chunks (list[Chunk]), kv_store, recompute_ratio (float), check_layer (int).</li>
+  <li><strong>출력</strong>: 기본 <code>logits</code>, <code>return_layerwise_output=True</code> 시 <code>LayerwiseOutput</code>, <code>return_hkvd_indices=True</code> 시 추가 <code>top_indices</code>.</li>
+  <li><strong>CacheBlend 단계</strong>: C/D/E/F.</li>
+  <li><strong>주의</strong>: <code>fuse_selective</code> (legacy) 와 <code>fuse_selective_lmc_parity</code> 는 다른 알고리즘 (L43). Phase 8 이후 default 는 후자.</li>
+  <li><strong>SDPA + mask handling</strong> (L45): SDPA 사용 시 <code>_update_causal_mask</code> 가 None 반환 → 수동 (1,1,S,S) -inf-above-diagonal mask 생성. DynamicCache 의 K dim +1 padding → SDPA 호출 전 <code>[:, :, top_indices, :total_seq]</code> 슬라이스.</li>
+</ul>
+
+<h3>5.3. <code>src/cacheblend/hkvd.py</code> &mdash; HKVD 선정</h3>
+<ul>
+  <li><strong>역할</strong>: token 별 KV deviation 계산 + top-K 인덱스 반환.</li>
+  <li><strong>kv_deviation(K_new, K_old)</strong>: 둘 다 fp32 cast → <code>(K_new - K_old)**2</code> → <code>sum(dim=-1)</code> (hidden dim) → squeeze batch → (S,) per-token scalar.</li>
+  <li><strong>select_top_k(deviations, ratio)</strong>: <code>topk_num = max(1, min(int(N*ratio), N))</code>, <code>torch.topk(largest=True)</code>, 결과 인덱스를 <code>torch.sort</code> 로 ascending (causal mask 호환).</li>
+  <li><strong>입력</strong>: pre-RoPE K (1, S, hidden_kv).</li>
+  <li><strong>출력</strong>: indices (int64, k 개, ascending).</li>
+  <li><strong>CacheBlend 단계</strong>: E.</li>
+  <li><strong>주의</strong>: RoPE 의 회전 불변성 (squared L2 보존) 으로 pre/post RoPE 둘 다 결과 동일.</li>
+</ul>
+
+<h3>5.4. <code>src/cacheblend/precompute.py</code> &mdash; 2 cache population</h3>
+<ul>
+  <li><strong>precompute_chunk_kv(lw, chunk)</strong>: 단일 chunk 의 token_ids 만 사용한 standalone forward. positions 0..L-1, no cross-chunk attention. v_proj 에 임시 hook → V capture. <code>get_pre_rope_k(li)</code> 로 K capture.</li>
+  <li><strong>precompute_from_cache_prompt(lw, chunks_in_cache_order, skip_chunk_ids)</strong>: 모든 chunk 를 한 fused input 으로 full forward → 매 layer 의 <code>get_pre_rope_k</code> 결과를 chunk offset 으로 slice → 각 chunk 별 entry 로 KVStore 저장. LMCache 의 cache-population 과 cross-chunk 정보 동등.</li>
+  <li><strong>CacheBlend 단계</strong>: A.</li>
+  <li><strong>주의</strong>: Loong 처럼 chunk 순서 reverse 시 후자 사용 권장 (cross-chunk 정보 포함).</li>
+</ul>
+
+<h3>5.5. <code>src/cacheblend/kv_store.py</code> &mdash; LRU chunk cache</h3>
+<ul>
+  <li><strong>역할</strong>: chunk_id 키 의 in-memory KV cache.</li>
+  <li><strong>주요 메서드</strong>: <code>has(id)</code> / <code>get(id)</code> / <code>put(id, K_per_layer, V_per_layer)</code> / <code>evict_lru()</code> / <code>clear()</code>. Phase 4 추가: <code>prefetch_chunk(id, loader_fn)</code> async (ThreadPoolExecutor).</li>
+  <li><strong>저장 형식</strong>: <code>{"K": list[Tensor(1, L, hidden_kv)], "V": list[Tensor(1, L, hidden_kv)]}</code> per layer.</li>
+  <li><strong>CacheBlend 단계</strong>: A + B.</li>
+  <li><strong>capacity</strong>: 기본 1024 chunks (OrderedDict 기반 LRU eviction).</li>
+</ul>
+
+<h3>5.6. <code>src/cacheblend/rope.py</code> &mdash; RoPE shift</h3>
+<ul>
+  <li><strong>apply_rope_shift(K_pre, target_positions, lw)</strong>: pre-RoPE K 를 (B, num_kv_heads, S, head_dim) shape 으로 reshape → <code>inner.rotary_emb</code> 로 (cos, sin) 계산 → HF <code>apply_rotary_pos_emb(dummy_q, K_heads, cos, sin)</code> 호출. dummy_q 는 무시.</li>
+  <li><strong>CacheBlend 단계</strong>: D.</li>
+  <li><strong>검증</strong>: <code>benchmarks/verify_rope_recomputation.py</code> 가 fuse_full_reuse 후 K 가 정확히 fused position 의 post-RoPE 임을 5 layer × 2 chunk 에서 비트 등가 (diff = 0.000e+00) 확인 (commit <code>de6d818</code>).</li>
+</ul>
+
+<h3>5.7. <code>benchmarks/run_phase6.py</code> &mdash; Phase 6/7 driver</h3>
+<ul>
+  <li><strong>실행</strong>: <code>python benchmarks/run_phase6.py --n 200 --out reports/... [--model ...] [--cb-impl legacy|lmc_parity]</code>.</li>
+  <li><strong>흐름</strong>: 4 runner (FullRecompute / FullReuse / PrefixCache / CacheBlendV4) × n examples. 각 example 별 chunk 생성 → <code>_populate_kv_store</code> → 4 메서드 실행 → F1/Rouge-L → results.jsonl append.</li>
+  <li><strong>CPU offload</strong>: <code>_populate_kv_store</code> 가 CPU 메모리 에 KV 저장, <code>_store_to_gpu</code> 가 호출 시 GPU 로 전송 (24GB GPU 메모리 절약).</li>
+  <li><strong>출력</strong>: <code>results.jsonl</code> (per-row id, runner, pred, golds, f1, rouge_l, ttft, total) + <code>summary.json</code> (per_runner means + paired CI vs FullReuse).</li>
+</ul>
+
+<h3>5.8. <code>benchmarks/run_loong.py</code> &mdash; Loong cache-then-reverse driver</h3>
+<ul>
+  <li><strong>실행</strong>: <code>python benchmarks/run_loong.py --n 50 --out ... --doc-tokens 4000 --max-model-len 131072 --ratios 0.0,0.15,1.0 --attn-impl sdpa</code>.</li>
+  <li><strong>흐름</strong>: per example 별 (1) build cache_chunks (forward order + dummy_query) + eval_chunks (reverse + real question), (2) length budget check, (3) <code>precompute_from_cache_prompt(skip_chunk_ids={dummy_id})</code>, (4) 5 methods (FullRecompute, FullReuse, CB r=0/0.15/1.0), (5) HKVD capture for r=0.15.</li>
+  <li><strong>chunk text 에 SEP <code>"# #"</code> trailing 임베드</strong>: chunker 가 explicit chunk 정의 라 SEP 의 segment-detection 역할 불필요.</li>
+  <li><strong>출력</strong>: results.jsonl (각 row 에 hkvd_indices 포함) + summary.json (per_method + ci + failure_subset + length_buckets + hkvd_boundary_enrichment).</li>
+</ul>
+
+<h3>5.9. <code>benchmarks/run_cacheblend_official.py</code> &mdash; YaoJiayi 1:1 포팅 (실행 대기)</h3>
+<ul>
+  <li><strong>실행</strong>: <code>--dataset {musique,wikimqa,samsum} --n N --out ... [--cb-ratio 0.15]</code>.</li>
+  <li><strong>충실 재현</strong>: Mistral <code>[INST]/[/INST]</code> 토큰 명시적 prepend, 데이터셋 별 prefix/query suffix, 기본 ratio (musique 0.15, wikimqa/samsum 0.18), max_new_tokens 32/128, samsum max_ctx_len=3400 drop policy.</li>
+  <li><strong>추가</strong>: FullReuse baseline, paired bootstrap CI, HKVD boundary enrichment (공식 스크립트엔 없음).</li>
+  <li><strong>상태</strong>: 드라이버 작성 완료, 실제 GPU 실행 미진행.</li>
+</ul>
+
+<h2>6. 입력 데이터 와 출력 artifact</h2>
+
+<h3>6.1. 입력 종류</h3>
+<table>
+<tr><th>유형</th><th>소스</th><th>형태</th></tr>
+<tr><td>CLI args</td><td>argparse</td><td>--n, --out, --model, --cb-impl, --cb-ratio, --cb-check-layer, --attn-impl 등</td></tr>
+<tr><td>Dataset file</td><td><code>external/mydata/cacheblend_fig12/prompts.jsonl</code> (Phase 6/7)<br><code>framolfese/Loong</code> via HF datasets (Loong)<br><code>external/CacheBlend/inputs/*.json</code> (official)</td><td>JSON/JSONL with question, docs, answers</td></tr>
+<tr><td>Prompt strings</td><td>driver 내 <code>_build_chunks</code> / <code>_build_chunk_texts</code></td><td>list[str] passed to chunker</td></tr>
+<tr><td>Cached KV artifact</td><td>memory (KVStore), not on disk</td><td>per-chunk per-layer pre-RoPE K + V tensors</td></tr>
+<tr><td>Tokenizer config</td><td>HF AutoTokenizer.from_pretrained(model_name)</td><td>BPE/sentencepiece</td></tr>
+<tr><td>HF auth</td><td><code>.env</code> 의 <code>HF_TOKEN</code> (gated Llama 다운로드)</td><td>environment variable</td></tr>
+</table>
+
+<h3>6.2. 중간 artifact</h3>
+<ul>
+  <li><strong>Chunk 객체</strong>: text + token_ids + chunk_id (SHA256[:16]). 메모리 only.</li>
+  <li><strong>KVStore</strong>: in-memory OrderedDict, chunk_id → {K_per_layer, V_per_layer}.</li>
+  <li><strong>past_key_values</strong>: HF DynamicCache, layer 별 full-length (1, num_kv_heads, total_seq, head_dim).</li>
+  <li><strong>HKVD indices</strong>: int64 tensor (topk_num,), ascending sorted. results.jsonl 에 list 형태로 저장.</li>
+</ul>
+
+<h3>6.3. 최종 출력</h3>
+<table>
+<tr><th>파일</th><th>위치</th><th>내용</th></tr>
+<tr><td><code>results.jsonl</code></td><td><code>reports/{phase-?-attachments}/</code></td><td>per row: id, method, pred, golds, f1, rouge_l, ttft_seconds, total_seconds, n_generated_tokens, (Loong/official: hkvd_indices, chunk_boundaries)</td></tr>
+<tr><td><code>summary.json</code></td><td>같은 디렉터리</td><td>per_method 집계, comparisons, paired CI, failure_subset, prompt length buckets, HKVD boundary enrichment, cache diagnostics</td></tr>
+<tr><td><code>phase-?-report.md</code></td><td><code>reports/</code></td><td>사람 가독 보고서 — 핵심 표 + v5-lessons 섹션</td></tr>
+<tr><td><code>*.png</code></td><td><code>reports/loong-a100-50/attachments/</code></td><td>HKVD per-example histogram + distance-to-boundary density + enrichment curve (matplotlib)</td></tr>
+<tr><td><code>gate-?-result.json</code></td><td><code>gates/</code></td><td>PASS/FAIL 평가 결과 (scripts/eval_gate.py 생성)</td></tr>
+<tr><td><code>cost-tracker.json</code></td><td><code>reports/</code></td><td>phase 별 누적 USD (scripts/cost_track.py)</td></tr>
+</table>
+
+<h2>7. 주요 알고리즘 흐름 (코드 위치 중심)</h2>
+
+<h3>7.1. Chunk handling</h3>
+<ol>
+  <li>Driver 가 prompt 를 list[str] 로 분할 (e.g., <code>parts = [system, doc_1, ..., question]</code>).</li>
+  <li><code>chunker.chunk_texts(tokenizer, parts)</code> 가 각 string 을 독립 tokenize → Chunk(text, token_ids, chunk_id).</li>
+  <li><code>chunk_offsets(chunks)</code> 가 fused 위치 (start, end) tuple 리스트 반환.</li>
+  <li><code>fused_input_ids(chunks)</code> 가 token_ids 를 concat → (1, total_seq) tensor.</li>
+</ol>
+
+<h3>7.2. KV cache construction</h3>
+<ol>
+  <li><code>precompute_chunk_kv(lw, chunk)</code>: chunk_only fused_input_ids → <code>forward_layerwise</code> → <code>get_pre_rope_k(li)</code> + v_proj hook capture.</li>
+  <li>또는 <code>precompute_from_cache_prompt(lw, chunks, skip_chunk_ids)</code>: full forward → chunk_offsets 로 per-chunk slice.</li>
+  <li>결과를 <code>kv_store.put(chunk.chunk_id, K_per_layer, V_per_layer)</code>.</li>
+</ol>
+
+<h3>7.3. KV cache reuse + RoPE handling</h3>
+<ol>
+  <li>fuse_* 함수가 layer 별 K_override (1, total_seq, hidden_kv) 빌드.</li>
+  <li>각 chunk 의 (start, end) 위치에 <code>K_override[li][:, start:end, :] = entry["K"][li]</code>.</li>
+  <li><code>k_proj.register_forward_hook(lambda: return K_override[li])</code> 로 fresh forward 의 k_proj 출력 을 K_override 로 대체.</li>
+  <li>HF Mistral/Llama 의 <code>apply_rotary_pos_emb</code> 가 fused position_ids 로 자동 RoPE 적용 → post-RoPE K at fused positions.</li>
+</ol>
+
+<h3>7.4. Selective recompute (LMCache parity, fusor.py:298-674)</h3>
+<ol>
+  <li>Boundary shortcut 점검.</li>
+  <li>K_stored_pre / V_stored 빌드 (full length).</li>
+  <li>Layers 0..check_layer-1: 표준 <code>inner.layers[li](past_key_value=past_kv, use_cache=True)</code> 호출 → full forward, past_kv 에 fresh K/V 누적.</li>
+  <li>Layer check_layer (manual): input_layernorm → q/k/v_proj → <code>kv_deviation(k_full_pre, K_stored_pre[check_layer])</code> → <code>select_top_k(devs, ratio)</code> → force-include 마지막 position → K mixed = cached@non-top + fresh@top → RoPE apply → past_kv.update(k_mixed_post, v_mixed) → SDPA(q_sparse_post, k_mixed_post, v_mixed, mask=causal[:, :, top, :total_seq]) → o_proj → residual_sparse = residual_full[top] + attn_out → post_attn_layernorm + mlp (모두 sparse).</li>
+  <li>Layers check_layer+1..end: hidden_state 가 sparse [topk_num] 인 채로 같은 manual 흐름 반복. K_full_li = cached_post (RoPE-shift via apply_rope_shift) + scatter fresh @ top. past_kv.update(k_full_li, v_full_li) — full-length 유지.</li>
+  <li>Final: norm + lm_head on sparse hidden → logits_sparse → full-length zero tensor 의 top_indices 위치 에 scatter (마지막 position 항상 포함 보장).</li>
+</ol>
+
+<h3>7.5. Generation</h3>
+<ol>
+  <li>greedy decode loop: <code>next_id = logits[0, -1].argmax()</code>.</li>
+  <li>매 step <code>model(input_ids=next_id, past_key_values=past_kv, use_cache=True)</code>.</li>
+  <li>EOS 또는 max_new_tokens 까지.</li>
+  <li><code>torch.inference_mode()</code> context 의무 (L40).</li>
+</ol>
+
+<h3>7.6. Evaluation</h3>
+<ol>
+  <li>per-row F1 (compute_f1_against_aliases) / Rouge-L.</li>
+  <li>per_method 집계 (mean, median, zero_count, one_count, ttft_mean).</li>
+  <li>paired bootstrap CI vs FullReuse (1000 회, seed=42).</li>
+  <li>failure subset (FullReuse < FullRecompute) 별도 집계.</li>
+  <li>prompt length buckets (0-8k / 8-16k / 16-24k / 24-32k / 32-64k / 64-128k).</li>
+  <li>HKVD boundary enrichment (Loong/official): ±1, ±3, ±8 window 의 hkvd/all fraction + enrichment ratio.</li>
+</ol>
+
+<h2>8. 핵심 용어 미니 사전</h2>
+<dl>
+  <dt><strong>KV cache</strong></dt>
+  <dd>Transformer attention 의 Key/Value 텐서 보존. 한번 prefill 한 prefix 의 K/V 를 다음 호출에 재사용 → decode 속도 향상. HF 의 <code>DynamicCache</code>, vLLM 의 paged cache 가 구현.</dd>
+
+  <dt><strong>RoPE</strong> (Rotary Position Embedding)</dt>
+  <dd>각 position 의 K/Q 에 회전 행렬을 곱해 position 정보를 인코딩. Llama / Mistral 사용. 회전 이라 invertible (RoPE shift 가능) + squared L2 norm 보존.</dd>
+
+  <dt><strong>Pre-RoPE K</strong></dt>
+  <dd><code>k_proj(hidden_state)</code> 직후 (RoPE 적용 전) 의 K. Position 무관. 우리 구현 의 KVStore 저장 형식.</dd>
+
+  <dt><strong>Hidden state</strong></dt>
+  <dd>각 transformer layer 의 입력/출력 텐서 (1, S, hidden_size). Q/K/V 는 hidden_state 에서 projection.</dd>
+
+  <dt><strong>Prefill</strong></dt>
+  <dd>전체 input prompt 의 forward pass. 모든 position 의 K/V 가 한번에 계산됨.</dd>
+
+  <dt><strong>Decode</strong></dt>
+  <dd>한번에 1 token 씩 생성. past_key_values 사용.</dd>
+
+  <dt><strong>Chunk</strong></dt>
+  <dd>KV reuse 단위. 보통 document 1 개 또는 prefix/question 등 의미적 단위. 우리 의 Chunk 는 (text, token_ids, chunk_id) tuple.</dd>
+
+  <dt><strong>Cache hit / miss</strong></dt>
+  <dd>chunk_id 가 KVStore 에 있으면 hit (cached K/V 재사용), 없으면 miss (fresh forward).</dd>
+
+  <dt><strong>Recompute ratio</strong></dt>
+  <dd>전체 token 중 fresh recompute 할 비율. Paper default 0.15 (15%), Loong/wikimqa/samsum 은 0.18.</dd>
+
+  <dt><strong>Top-K HKVD (High KV Deviation)</strong></dt>
+  <dd>check_layer 에서 cached K vs fresh K 의 deviation 이 높은 상위 K 개 token. 이들 만 후속 layer 에서 fresh forward.</dd>
+
+  <dt><strong>Check layer</strong></dt>
+  <dd>HKVD 측정 layer. 보통 layer 1 (paper default). Phase 8 multi-check schedule 은 다중 layer 가능.</dd>
+
+  <dt><strong>Sparse forward</strong></dt>
+  <dd>check_layer 이후 일부 (top-K) position 만 forward. nontop position 은 cached K/V 그대로 두고 결과적 으로 attention 의 key/value 만 제공.</dd>
+
+  <dt><strong>F1 (token-level)</strong></dt>
+  <dd>predicted text vs gold answer 의 token id (tokenizer.encode 후) overlap precision/recall harmonic mean. Paper convention.</dd>
+
+  <dt><strong>Paired bootstrap CI</strong></dt>
+  <dd>per-example F1 차이 (method A - method B) 의 1000 회 bootstrap → 95% percentile interval. CI low &gt; 0 이면 통계적 유의.</dd>
+
+  <dt><strong>Eager attention</strong></dt>
+  <dd>HF 의 명시적 (Q × K^T) softmax matmul 구현. bit-exact 검증 가능 but 메모리 O(S²) → long context OOM.</dd>
+
+  <dt><strong>SDPA</strong></dt>
+  <dd>torch.nn.functional.scaled_dot_product_attention. Flash / memory-efficient kernel 자동 선택. O(S²) score matrix 명시 materialize 회피.</dd>
+</dl>
+
+<h2>9. 현재 구현 의 검증 상태</h2>
+
+<div class="ok-box">
+  <strong>검증된 것</strong>
+  <ul>
+    <li><strong>RoPE 재적용 비트 등가</strong> (commit <code>de6d818</code>): fuse_full_reuse 후 K 가 정확히 fused position 의 post-RoPE 임을 5 layer × 2 chunk 에서 diff=0.000e+00 확인.</li>
+    <li><strong>fuse_selective_lmc_parity CPU 단위 테스트 8/8 PASS</strong>: tests/test_fusor_lmc_parity.py 가 (1) boundary shortcuts, (2) past_key_values full-length, (3) non-HKVD K = cached RoPE-shifted (bit-exact &lt;1e-5), (4) 마지막 position force-include, (5) pre-check layer 가 full_recompute 와 비트 등가, (6) legacy 와 다름.</li>
+    <li><strong>HKVD 수식 LMCache 와 등가</strong>: docs/notes/lmcache-1to1-comparison.md §2.2 — squared L2, fp32 cast, dim sum 모두 일치.</li>
+    <li><strong>Top-K 선정 LMCache 와 등가</strong>: §2.3 — int(N*r), max(1), topk, sort ascending 동일.</li>
+    <li><strong>HF DecoderLayer kwarg 버그 수정</strong>: 4.49 는 <code>past_key_value</code> (singular) 사용. plural 로 호출 시 cache 비어 있음 → 수정 완료.</li>
+    <li><strong>Quality 결과</strong>: Phase 6c Mistral (200) PASS, Phase 7c Llama (200) FAIL (모델 의존성), Loong Llama (50) CB 우위 (+0.03 F1, prefill 48% 빠름), HKVD boundary enrichment 3.13x.</li>
+  </ul>
+</div>
+
+<div class="warn-box">
+  <strong>부분 검증</strong>
+  <ul>
+    <li><strong>fuse_selective (legacy)</strong> 와 <strong>fuse_selective_lmc_parity</strong> 의 F1 차이 거의 0 (Mistral Δ=−0.004, Llama Δ=+0.0001) — 두 알고리즘 모두 LMCache "수식 등가" but 의미는 다름. 자세한 비교는 docs/notes/lmcache-1to1-comparison.md.</li>
+    <li><strong>SDPA path 의 sparse attention</strong>: CPU 단위 테스트 PASS, GPU 의 정확성 추가 검증 필요 (causal mask K dim slice 가 SDPA 의 내부 처리와 일관 인지).</li>
+    <li><strong>LMCache (vLLM) 바이너리 와의 비교</strong>: 인프라 부재 로 직접 prefill 결과 비트 비교 불가. 수식/단계 등가성 으로 우회 검증.</li>
+    <li><strong>Phase 8 gradual filtering</strong>: Step 1 (layer profile) 완료, Step 2-4 사용자 검토 대기.</li>
+    <li><strong>YaoJiayi/CacheBlend official 3 dataset</strong>: 드라이버 작성 완료 (commit 대기), 실제 GPU 실행 미진행.</li>
+  </ul>
+</div>
+
+<div class="warn-box">
+  <strong>확인 필요</strong>
+  <ul>
+    <li><strong>Llama-3.1-8B Musique 의 CB < FullReuse</strong>: 모델 의존성 가설 (Llama 의 FullReuse 가 이미 retention 86%) 이지만 추가 ablation 필요 — check_layer 위치 변화, ratio sweep, multi-check schedule.</li>
+    <li><strong>Loong CB ci_low</strong> 가 -0.002 (borderline) — sample 43 으로 power 부족 또는 실제 marginal effect 인지 구분 어려움. n 증가 검증 권장.</li>
+    <li><strong>Loong sample 한계</strong>: <code>framolfese/Loong</code> paper split 의 11-doc 예제 가 43개만 존재. 더 많은 sample 위해 <code>min_docs</code> 완화 필요.</li>
+    <li><strong>controller.py LoadingController</strong>: 정의됨, but 평가 driver 에서 직접 호출 없음. Storage-aware ratio 자동 조정의 실제 영향 미측정.</li>
+    <li><strong>SamSum (Rouge-L) 평가</strong>: utils.py compute_rl 호출 path 작성 완료, but few-shot example drop policy (max_ctx_len=3400) 가 우리 측 에서 정확 재현 검증 필요.</li>
+  </ul>
+</div>
+
+<div class="warn-box">
+  <strong>리스크</strong>
+  <ul>
+    <li>HF transformers 4.49 → 4.50+ 업데이트 시 <code>past_key_value</code> kwarg / <code>_update_causal_mask</code> 시그니처 변경 가능 — fusor.py 의 manual layer 호출 부분 깨질 위험.</li>
+    <li>SDPA 가 내부적으로 사용하는 kernel (flash / memory-efficient) 이 GPU/CUDA 버전 에 따라 다른 결과 가능 — bit-exact 비교 시 주의.</li>
+    <li>chunk_id hash 가 (text, token_ids) 기반 — tokenizer 버전 변경 시 모든 cached entry 무효화 됨 (silent miss).</li>
+    <li>KVStore 가 in-memory only — disk 저장 미구현. Multi-session 재사용 불가.</li>
+  </ul>
+</div>
+
+<h2>10. 다음 액션 제안</h2>
+
+<h3>코드 검증</h3>
+<ul>
+  <li>GPU 상에서 <code>fuse_selective_lmc_parity</code> 의 SDPA path 에 대한 추가 정확성 비교 (eager 동일 input 대비 max_diff 측정).</li>
+  <li>LMCache (실제 vLLM 환경) 의 prefill 결과 와 우리 결과 의 logit 비교 — Phase 7d 또는 별도 sanity 실험.</li>
+  <li>controller.py 의 LoadingController 가 실제 차이를 만드는지 측정 (RAM vs NVMe simulated load).</li>
+</ul>
+
+<h3>실험 검증</h3>
+<ul>
+  <li>Phase 8 step 2-4 진행 (gradual filtering — Llama 의 CB < FullReuse 원인 해명 후보).</li>
+  <li>CacheBlend official 3 dataset GPU 실행 (~$0.90, ~3hr).</li>
+  <li>Loong n 확장 (min_docs 완화 → ~95 samples) 으로 ci_low 안정화.</li>
+  <li>check_layer sweep (1, 2, 5, 10) on Llama — 모델별 최적 layer 탐색.</li>
+</ul>
+
+<h3>문서화 보강</h3>
+<ul>
+  <li>fuse_selective (legacy) 와 fuse_selective_lmc_parity 의 의미 차이 다이어그램 — 시각화 (Q sparse vs full).</li>
+  <li>각 driver 의 expected output 예시 (sanity 시 확인용).</li>
+  <li>Loong 보고서 의 "7 examples skipped" 문구 수정 (실제 원인은 dataset 한계).</li>
+</ul>
+
+<h3>LMCache 와의 정밀 비교 확장</h3>
+<ul>
+  <li>multi-check_layer 지원 (현재 single int) — LMCache 의 <code>check_layers: List[int]</code> 와 정합.</li>
+  <li>multi-ratio 지원 — LMCache 의 <code>recomp_ratios: List[float]</code> 와 정합 (현재 [0] hardcode).</li>
+</ul>
+
+<h2>11. 이메일 제목/본문 안내</h2>
+
+<p><strong>추천 이메일 제목</strong> (한 줄):</p>
+<pre>[CacheBlend HF v4] 코드 흐름 분석 — 처음 보는 사람을 위한 자세한 설명</pre>
+
+<p><strong>본문 사용법</strong>:</p>
+<ol>
+  <li>이 HTML 파일 (<code>reports/cacheblend_code_flow_email_report.html</code>) 을 브라우저 로 열어 본문 selection.</li>
+  <li>또는 <code>scripts/send_report.py</code> 와 유사한 SMTP 스크립트 에 HTML body 로 attach (msg.attach(MIMEText(html, "html"))).</li>
+  <li>Gmail/Outlook 의 "HTML 모드" 또는 "rich text" 에 그대로 paste 가능 (inline CSS 사용 — 외부 리소스 의존 없음).</li>
+</ol>
+
+<div class="summary-box">
+  <strong>이 보고서 의 한계</strong>
+  <ul>
+    <li>코드 read-only 분석 결과 만 정리. 실제 실행/검증 은 별도 phase 보고서 참조.</li>
+    <li>"확인 필요" 로 표시 한 항목 은 코드 가 존재 하지만 의도 한 동작 인지 별도 확인 필요.</li>
+    <li>v3 (이전 iteration) 의 30개 lesson 은 docs/notes/v4-lessons.md (이 보고서 외부) 참조.</li>
+  </ul>
+</div>
+
+<div class="footnote">
+  Generated by static code analysis of <code>cacheblend-hf-v4</code> @ commit <code>4689713</code> (2026-05-19).
+  본 보고서 는 코드 를 수정 하지 않음 — analysis 전용.
+  관련 외부 reference: <code>YaoJiayi/CacheBlend</code> (paper §4 원본), <code>LMCache/LMCache</code> (vLLM plugin),
+  <code>framolfese/Loong</code> (HF dataset).
+</div>
+
+</body>
+</html>
