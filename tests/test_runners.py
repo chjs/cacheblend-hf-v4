@@ -1,11 +1,9 @@
 """Phase 5 — Runner CPU stub-mode dispatch tests.
 
-All 5 Runner subclasses must:
+All 4 Runner subclasses must:
   1. Instantiate with model=None (no GPU).
   2. Accept prepare(system, docs, question).
   3. Return a GenerationResult-like (has .text, .ttft_seconds, .total_seconds, .n_generated_tokens).
-
-GradualV4Runner additionally must accept `schedule=` keyword.
 """
 from __future__ import annotations
 
@@ -14,12 +12,10 @@ import pytest
 
 def test_imports():
     from cacheblend.runners import (
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner,
-        CacheBlendV4Runner, GradualV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
     )
     assert all(callable(c) for c in [
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner,
-        CacheBlendV4Runner, GradualV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
     ])
 
 
@@ -28,7 +24,6 @@ def test_imports():
     ("FullReuseRunner", {}),
     ("PrefixCacheRunner", {}),
     ("CacheBlendV4Runner", {"recompute_ratio": 0.15, "check_layer": 1}),
-    ("GradualV4Runner", {"schedule": None}),
 ])
 def test_dispatch_with_stub_model(runner_name, kwargs):
     """Every runner must instantiate (model=None) and dispatch prepare/generate."""

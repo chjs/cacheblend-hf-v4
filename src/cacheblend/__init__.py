@@ -24,20 +24,12 @@ from cacheblend.fusor import (
 from cacheblend.hkvd import kv_deviation, select_top_k
 from cacheblend.controller import LoadingController, StorageProfile
 
-# Phase 8 (gradual filtering)
-from cacheblend.gradual import (
-    LayerProfiler,
-    SchedulePlanner,
-    GradualSchedule,
-)
-
 # Runners (mydata harness compatible) — Phase 5+
 from cacheblend.runners import (
     FullRecomputeRunner,
     FullReuseRunner,
     PrefixCacheRunner,
     CacheBlendV4Runner,
-    GradualV4Runner,
 )
 
 __all__ = [
@@ -60,12 +52,8 @@ __all__ = [
     "select_top_k",
     "LoadingController",
     "StorageProfile",
-    "LayerProfiler",
-    "SchedulePlanner",
-    "GradualSchedule",
     "FullRecomputeRunner",
     "FullReuseRunner",
     "PrefixCacheRunner",
     "CacheBlendV4Runner",
-    "GradualV4Runner",
 ]

@@ -11,12 +11,11 @@ The mydata harness (external/mydata/cacheblend_fig12/harness/) provides:
   - FullPrefillRunner (reference baseline)
   - F1/Rouge-L metrics
 
-We add 5 runners on top:
+We add 4 runners on top:
   - FullRecomputeRunner: standard prefill, no KV reuse (Phase 6 baseline)
   - FullReuseRunner: cache reuse without selective recompute (Phase 2)
   - PrefixCacheRunner: only first chunk reused (Phase 4)
-  - CacheBlendV4Runner: selective recompute (Phase 3)
-  - GradualV4Runner: Phase 8 gradual filtering (multi check_layer schedule)
+  - CacheBlendV4Runner: selective recompute (paper §4, sparse forward)
 """
 from __future__ import annotations
 
@@ -328,27 +327,9 @@ class CacheBlendV4Runner(_RunnerBase):
         )
 
 
-class GradualV4Runner(_RunnerBase):
-    """Phase 8 gradual filtering — multi check_layer schedule.
-
-    Phase 5: stub-only. Real Phase 8 implementation will fill in `_run_prefill_and_generate`.
-    """
-
-    def __init__(self, model=None, tokenizer=None, schedule=None):
-        super().__init__(model=model, tokenizer=tokenizer)
-        self.schedule = schedule
-
-    def _run_prefill_and_generate(self, max_new_tokens: int):
-        raise NotImplementedError(
-            "GradualV4Runner.generate: real implementation in Phase 8. "
-            "For Phase 5 plumbing (CPU stub mode), `model=None` is the supported path."
-        )
-
-
 __all__ = [
     "FullRecomputeRunner",
     "FullReuseRunner",
     "PrefixCacheRunner",
     "CacheBlendV4Runner",
-    "GradualV4Runner",
 ]

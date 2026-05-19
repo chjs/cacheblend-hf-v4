@@ -54,19 +54,11 @@ def test_imports_controller():
     assert StorageProfile.SLOW_DISK
 
 
-def test_imports_gradual():
-    from cacheblend import LayerProfiler, SchedulePlanner, GradualSchedule
-    sched = GradualSchedule(check_layers=[2, 5, 10], ratios=[0.30, 0.15, 0.10])
-    assert sched.check_layers == [2, 5, 10]
-
-
 def test_imports_runners():
     """Runner stubs must be importable even before mydata is cloned [Phase 0]."""
     from cacheblend import (
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner,
-        CacheBlendV4Runner, GradualV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
     )
-    # Stub runners — instantiation OK without model/tokenizer for smoke
     r = CacheBlendV4Runner(recompute_ratio=0.15, check_layer=1)
     assert r.recompute_ratio == 0.15
     assert r.check_layer == 1
