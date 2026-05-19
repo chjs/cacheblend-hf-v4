@@ -235,7 +235,7 @@ def select_top_k(deviations, ratio) -> torch.Tensor:
 | `FullRecomputeRunner` | `runners.py:172-189` | HF standard `model(input_ids, use_cache=True)` |
 | `FullReuseRunner` | `runners.py:191-244` | `fuse_full_reuse` (Phase 2) |
 | `PrefixCacheRunner` | `runners.py:247-283` | `fuse_prefix_cache` (Phase 4) |
-| `CacheBlendV4Runner` | `runners.py:286-327` | `fuse_selective` (Phase 3) |
+| `CacheBlendRunner` | `runners.py:286-327` | `fuse_selective` (Phase 3) |
 | `GradualV4Runner` | `runners.py:330-345` | (Phase 8 stub) — `_run_prefill_and_generate` raises NotImplementedError |
 
 **CPU stub mode** (`runners.py:95-100`):
@@ -397,7 +397,7 @@ class GradualV4Runner(_RunnerBase):
 | FullRecomputeRunner | 200 | **0.2542** | 0.274 | 0.203 | 0.246 | 0.872 | 67/10 |
 | FullReuseRunner | 200 | 0.1432 | 0.207 | 0.079 | 0.251 | 1.125 | 102/4 |
 | PrefixCacheRunner | 200 | 0.2542 | 0.274 | 0.203 | 0.244 | 0.867 | 67/10 |
-| **CacheBlendV4Runner** (0.15, CL=1) | 200 | **0.2222** | 0.264 | 0.143 | 0.263 | 0.979 | 74/9 |
+| **CacheBlendRunner** (0.15, CL=1) | 200 | **0.2222** | 0.264 | 0.143 | 0.263 | 0.979 | 74/9 |
 
 **Diff + paired bootstrap CI** (n_paired=200, n_bootstrap=1000, confidence=0.95, seed=42):
 
@@ -442,7 +442,7 @@ class GradualV4Runner(_RunnerBase):
 
 2. Phase 6 의 4 runner 는 **모두 flat single check_layer**:
    - FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner 는 selective recompute 자체 안 씀.
-   - CacheBlendV4Runner 는 `recompute_ratio=0.15, check_layer=1` (Phase 6 driver `benchmarks/run_phase6.py` argparse default 와 호출 사이트 모두 단일 정수).
+   - CacheBlendRunner 는 `recompute_ratio=0.15, check_layer=1` (Phase 6 driver `benchmarks/run_phase6.py` argparse default 와 호출 사이트 모두 단일 정수).
 
 3. `fuse_selective` 가 `check_layer: int` 단수 파라미터 (`fusor.py:124`). multi-check 으로 확장하려면 시그니처 변경 + state machine 추가 필요 — 현재 미구현.
 

@@ -211,7 +211,7 @@ def main():
     model = lw_model.model
     tokenizer = lw_model.tokenizer
 
-    runners = ["FullRecomputeRunner", "FullReuseRunner", "PrefixCacheRunner", "CacheBlendV4Runner"]
+    runners = ["FullRecomputeRunner", "FullReuseRunner", "PrefixCacheRunner", "CacheBlendRunner"]
 
     rows_in_memory = []  # for summary computation; also holds resumed rows
 
@@ -255,7 +255,7 @@ def main():
                             res = _run_full_reuse(lw_model, model, tokenizer, ex, args.max_new_tokens, gpu_store)
                         elif runner == "PrefixCacheRunner":
                             res = _run_prefix_cache(lw_model, model, tokenizer, ex, args.max_new_tokens, gpu_store)
-                        else:  # CacheBlendV4Runner
+                        else:  # CacheBlendRunner
                             res = _run_cacheblend(lw_model, model, tokenizer, ex, args.max_new_tokens,
                                                   gpu_store, args.cb_ratio, args.cb_check_layer)
                     finally:
@@ -348,16 +348,16 @@ def _build_summary(rows: list[dict]) -> dict:
 
     f_full = per_runner_stats.get("FullRecomputeRunner", {}).get("f1_mean", 0.0)
     f_reuse = per_runner_stats.get("FullReuseRunner", {}).get("f1_mean", 0.0)
-    f_cb = per_runner_stats.get("CacheBlendV4Runner", {}).get("f1_mean", 0.0)
+    f_cb = per_runner_stats.get("CacheBlendRunner", {}).get("f1_mean", 0.0)
     summary["f1_diff_cb_vs_full"] = f_cb - f_full
     summary["f1_diff_cb_vs_reuse"] = f_cb - f_reuse
 
     # Paired bootstrap CI: cb vs reuse (per-sample paired).
     from benchmarks.metrics.bootstrap import paired_bootstrap_ci
-    common_ids = sorted({k[0] for k in by_id_runner if k[1] == "CacheBlendV4Runner"} &
+    common_ids = sorted({k[0] for k in by_id_runner if k[1] == "CacheBlendRunner"} &
                         {k[0] for k in by_id_runner if k[1] == "FullReuseRunner"})
     if len(common_ids) >= 2:
-        a = [by_id_runner[(i, "CacheBlendV4Runner")]["f1"] for i in common_ids]
+        a = [by_id_runner[(i, "CacheBlendRunner")]["f1"] for i in common_ids]
         b = [by_id_runner[(i, "FullReuseRunner")]["f1"] for i in common_ids]
         lo, hi = paired_bootstrap_ci(a, b, n_bootstrap=1000, confidence=0.95, seed=42)
         summary["ci_low_cb_vs_reuse"] = lo

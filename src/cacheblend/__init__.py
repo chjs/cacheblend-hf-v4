@@ -29,7 +29,7 @@ from cacheblend.runners import (
     FullRecomputeRunner,
     FullReuseRunner,
     PrefixCacheRunner,
-    CacheBlendV4Runner,
+    CacheBlendRunner,
 )
 
 __all__ = [
@@ -55,5 +55,5 @@ __all__ = [
     "FullRecomputeRunner",
     "FullReuseRunner",
     "PrefixCacheRunner",
-    "CacheBlendV4Runner",
+    "CacheBlendRunner",
 ]

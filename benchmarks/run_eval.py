@@ -81,7 +81,7 @@ def main():
             _import_runner("cacheblend.runners:FullRecomputeRunner"),
             _import_runner("cacheblend.runners:FullReuseRunner"),
             _import_runner("cacheblend.runners:PrefixCacheRunner"),
-            _import_runner("cacheblend.runners:CacheBlendV4Runner"),
+            _import_runner("cacheblend.runners:CacheBlendRunner"),
         ]
     else:
         runners = [_import_runner(args.runner)]

@@ -15,7 +15,7 @@ We add 4 runners on top:
   - FullRecomputeRunner: standard prefill, no KV reuse (Phase 6 baseline)
   - FullReuseRunner: cache reuse without selective recompute (Phase 2)
   - PrefixCacheRunner: only first chunk reused (Phase 4)
-  - CacheBlendV4Runner: selective recompute (paper §4, sparse forward)
+  - CacheBlendRunner: selective recompute (paper §4, sparse forward)
 """
 from __future__ import annotations
 
@@ -282,7 +282,7 @@ class PrefixCacheRunner(_RunnerBase):
         )
 
 
-class CacheBlendV4Runner(_RunnerBase):
+class CacheBlendRunner(_RunnerBase):
     """Selective recompute (paper §4, sparse-forward implementation)."""
 
     def __init__(self, model=None, tokenizer=None, recompute_ratio: float = 0.15, check_layer: int = 1):
@@ -331,5 +331,5 @@ __all__ = [
     "FullRecomputeRunner",
     "FullReuseRunner",
     "PrefixCacheRunner",
-    "CacheBlendV4Runner",
+    "CacheBlendRunner",
 ]

@@ -12,10 +12,10 @@ import pytest
 
 def test_imports():
     from cacheblend.runners import (
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendRunner,
     )
     assert all(callable(c) for c in [
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendRunner,
     ])
 
 
@@ -23,7 +23,7 @@ def test_imports():
     ("FullRecomputeRunner", {}),
     ("FullReuseRunner", {}),
     ("PrefixCacheRunner", {}),
-    ("CacheBlendV4Runner", {"recompute_ratio": 0.15, "check_layer": 1}),
+    ("CacheBlendRunner", {"recompute_ratio": 0.15, "check_layer": 1}),
 ])
 def test_dispatch_with_stub_model(runner_name, kwargs):
     """Every runner must instantiate (model=None) and dispatch prepare/generate."""
@@ -55,7 +55,7 @@ def test_dispatch_with_stub_model(runner_name, kwargs):
 
 
 def test_cacheblend_runner_carries_config():
-    from cacheblend.runners import CacheBlendV4Runner
-    r = CacheBlendV4Runner(recompute_ratio=0.20, check_layer=2)
+    from cacheblend.runners import CacheBlendRunner
+    r = CacheBlendRunner(recompute_ratio=0.20, check_layer=2)
     assert r.recompute_ratio == 0.20
     assert r.check_layer == 2

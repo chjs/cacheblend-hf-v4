@@ -57,9 +57,9 @@ def test_imports_controller():
 def test_imports_runners():
     """Runner stubs must be importable even before mydata is cloned [Phase 0]."""
     from cacheblend import (
-        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendV4Runner,
+        FullRecomputeRunner, FullReuseRunner, PrefixCacheRunner, CacheBlendRunner,
     )
-    r = CacheBlendV4Runner(recompute_ratio=0.15, check_layer=1)
+    r = CacheBlendRunner(recompute_ratio=0.15, check_layer=1)
     assert r.recompute_ratio == 0.15
     assert r.check_layer == 1
 
