@@ -1,0 +1,59 @@
+{
+  "per_runner": {
+    "FullRecomputeRunner": {
+      "n": 200,
+      "f1_mean": 0.19260506791971052,
+      "f1_std": 0.2982446913100701,
+      "rouge_l_mean": 0.0931230989408392,
+      "ttft_seconds_mean": 0.21124281189404429,
+      "total_seconds_mean": 1.085554763795808,
+      "f1_zero_count": 100,
+      "f1_one_count": 17
+    },
+    "FullReuseRunner": {
+      "n": 200,
+      "f1_mean": 0.16653291218369143,
+      "f1_std": 0.31232238639814724,
+      "rouge_l_mean": 0.07302671054867724,
+      "ttft_seconds_mean": 0.2186647698143497,
+      "total_seconds_mean": 1.0944702839944511,
+      "f1_zero_count": 137,
+      "f1_one_count": 18
+    },
+    "PrefixCacheRunner": {
+      "n": 200,
+      "f1_mean": 0.19260506791971052,
+      "f1_std": 0.2982446913100701,
+      "rouge_l_mean": 0.09319547505436974,
+      "ttft_seconds_mean": 0.21110888603609054,
+      "total_seconds_mean": 1.085303690098226,
+      "f1_zero_count": 100,
+      "f1_one_count": 17
+    },
+    "CacheBlendV4Runner": {
+      "n": 200,
+      "f1_mean": 0.15605662040071433,
+      "f1_std": 0.2664481018166356,
+      "rouge_l_mean": 0.075265646366444,
+      "ttft_seconds_mean": 0.06410612149629742,
+      "total_seconds_mean": 0.9368042560433969,
+      "f1_zero_count": 114,
+      "f1_one_count": 11
+    }
+  },
+  "FullRecomputeRunner": {
+    "n": 200,
+    "f1_mean": 0.19260506791971052,
+    "f1_std": 0.2982446913100701,
+    "rouge_l_mean": 0.0931230989408392,
+    "ttft_seconds_mean": 0.21124281189404429,
+    "total_seconds_mean": 1.085554763795808,
+    "f1_zero_count": 100,
+    "f1_one_count": 17
+  },
+  "f1_diff_cb_vs_full": -0.03654844751899619,
+  "f1_diff_cb_vs_reuse": -0.010476291782977099,
+  "ci_low_cb_vs_reuse": -0.05806483597832986,
+  "ci_high_cb_vs_reuse": 0.03286184055765821,
+  "n_paired": 200
+}
