@@ -1,0 +1,23 @@
+{
+  "phase": "7",
+  "sub_phase": "7c",
+  "overall": "FAIL",
+  "n_pass": 1,
+  "n_fail": 1,
+  "results": [
+    {
+      "id": "7c.1",
+      "description": "",
+      "check_type": "metric",
+      "result": "FAIL",
+      "detail": "ci_low_cb_vs_reuse = -0.05817173786958697 > 0.0"
+    },
+    {
+      "id": "7c.2",
+      "description": "",
+      "check_type": "cost_check",
+      "result": "PASS",
+      "detail": "cumulative_usd = $1.66 (cap: $20.00)"
+    }
+  ]
+}
