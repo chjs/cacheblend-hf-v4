@@ -376,6 +376,7 @@ def fuse_selective_lmc_parity(
     recompute_ratio: float = 0.15,
     check_layer: int = 1,
     return_layerwise_output: bool = False,
+    return_hkvd_indices: bool = False,
 ):
     """LMCache `blender.process_qkv` parity — paper §4 faithful selective recompute.
 
@@ -416,11 +417,13 @@ def fuse_selective_lmc_parity(
                                    return_layerwise_output=return_layerwise_output)
 
     from transformers.cache_utils import DynamicCache
-    from transformers.models.mistral.modeling_mistral import (
-        apply_rotary_pos_emb,
-        eager_attention_forward,
-    )
+    from transformers.models.mistral.modeling_mistral import apply_rotary_pos_emb
     from cacheblend.hkvd import kv_deviation, select_top_k
+    # SDPA is memory-efficient for sparse-Q × full-K attention at long context.
+    # eager_attention_forward materializes the (num_heads, topk_num, S) score
+    # tensor explicitly — OOM at S>=20k. SDPA dispatches to flash / memefficient
+    # kernels which compute attention without materializing the full score matrix.
+    from torch.nn.functional import scaled_dot_product_attention as _sdpa
 
     inner = layerwise_model._inner
     n_layers = layerwise_model.num_layers
@@ -469,6 +472,19 @@ def fuse_selective_lmc_parity(
             past_key_values=past_key_values,
             output_attentions=False,
         )
+        # SDPA / FlashAttention2 implementations return None here (they build
+        # their own causal mask internally inside the attention kernel). Our
+        # sparse layers manually call eager_attention_forward, which REQUIRES
+        # an explicit additive mask. Build the standard (1,1,S,S) -inf-above-
+        # diagonal mask used by HF's eager path.
+        if causal_mask_full is None:
+            mask = torch.zeros((1, 1, total_seq, total_seq), dtype=dtype, device=device)
+            triu = torch.triu(
+                torch.ones(total_seq, total_seq, dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            mask.masked_fill_(triu, float("-inf"))
+            causal_mask_full = mask
 
         # ── Layers 0..check_layer-1: full fresh forward (matches LMCache) ───
         # NOTE: HF transformers 4.49 MistralDecoderLayer uses kwarg
@@ -543,18 +559,23 @@ def fuse_selective_lmc_parity(
         past_key_values.update(k_full_post, v_mixed_heads, check_layer)
 
         # Causal mask for sparse Q × full K: slice rows of the full mask.
-        sparse_causal_mask = causal_mask_full[:, :, top_indices, :]  # (1, 1, topk_num, S)
+        # NOTE: HF's _update_causal_mask with DynamicCache pads K with a +1
+        # future cache slot [L38]. SDPA requires exact (Q, K) match — slice
+        # K dim to total_seq.
+        sparse_causal_mask = causal_mask_full[:, :, top_indices, :total_seq]
 
-        # Eager attention with sparse Q × full mixed K/V.
-        attn_out_ck, _ = eager_attention_forward(
-            attn_ck,
-            q_sparse_post, k_full_post, v_mixed_heads,
-            sparse_causal_mask,
-            scaling=attn_ck.scaling,
-            dropout=0.0,
-        )
-        # attn_out_ck: (1, topk_num, num_heads, head_dim) — already transposed back
-        attn_out_ck = attn_out_ck.reshape(1, topk_num, num_heads * head_dim).contiguous()
+        # SDPA: sparse Q × full mixed K/V. Repeat KV heads for GQA.
+        n_rep = num_heads // num_kv_heads
+        k_rep = k_full_post.repeat_interleave(n_rep, dim=1)
+        v_rep = v_mixed_heads.repeat_interleave(n_rep, dim=1)
+        attn_out_ck = _sdpa(
+            q_sparse_post, k_rep, v_rep,
+            attn_mask=sparse_causal_mask,
+            scale=attn_ck.scaling,
+        )  # (1, num_heads, topk_num, head_dim)
+        attn_out_ck = attn_out_ck.transpose(1, 2).reshape(
+            1, topk_num, num_heads * head_dim,
+        ).contiguous()
         attn_out_ck = attn_ck.o_proj(attn_out_ck)
 
         # Residual addition + FFN (all sparse).
@@ -618,16 +639,18 @@ def fuse_selective_lmc_parity(
 
             past_key_values.update(k_full_li, v_full_li, li)
 
-            # Sparse Q × full mixed K/V attention.
-            sparse_causal_mask_li = causal_mask_full[:, :, top_indices, :]
-            attn_out_li, _ = eager_attention_forward(
-                attn_li,
-                q_sparse_post, k_full_li, v_full_li,
-                sparse_causal_mask_li,
-                scaling=attn_li.scaling,
-                dropout=0.0,
+            # SDPA: sparse Q × full mixed K/V attention.
+            sparse_causal_mask_li = causal_mask_full[:, :, top_indices, :total_seq]
+            k_rep_li = k_full_li.repeat_interleave(n_rep, dim=1)
+            v_rep_li = v_full_li.repeat_interleave(n_rep, dim=1)
+            attn_out_li = _sdpa(
+                q_sparse_post, k_rep_li, v_rep_li,
+                attn_mask=sparse_causal_mask_li,
+                scale=attn_li.scaling,
             )
-            attn_out_li = attn_out_li.reshape(1, topk_num, num_heads * head_dim).contiguous()
+            attn_out_li = attn_out_li.transpose(1, 2).reshape(
+                1, topk_num, num_heads * head_dim,
+            ).contiguous()
             attn_out_li = attn_li.o_proj(attn_out_li)
 
             h_sparse = residual_sparse_in + attn_out_li
@@ -648,4 +671,7 @@ def fuse_selective_lmc_parity(
         logits_full[:, top_indices, :] = logits_sparse
 
     out_obj = LayerwiseOutput(logits=logits_full, past_key_values=past_key_values)
-    return out_obj if return_layerwise_output else logits_full
+    result = out_obj if return_layerwise_output else logits_full
+    if return_hkvd_indices:
+        return result, top_indices
+    return result

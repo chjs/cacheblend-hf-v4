@@ -1,0 +1,144 @@
+{
+  "per_method": {
+    "FullRecompute": {
+      "n": 43,
+      "f1_mean": 0.1540120702873474,
+      "f1_median": 0.16494845360824745,
+      "rouge_l_mean": 0.15169356770911815,
+      "ttft_seconds_mean": 7.201511413573699,
+      "ttft_seconds_median": 7.203725153114647,
+      "f1_zero_count": 3,
+      "f1_one_count": 0
+    },
+    "FullReuse": {
+      "n": 43,
+      "f1_mean": 0.11246698658701837,
+      "f1_median": 0.12048192771084336,
+      "rouge_l_mean": 0.12995257281490802,
+      "ttft_seconds_mean": 7.411786590248,
+      "ttft_seconds_median": 7.415587973315269,
+      "f1_zero_count": 11,
+      "f1_one_count": 0
+    },
+    "CacheBlend_r0.00": {
+      "n": 43,
+      "f1_mean": 0.11246698658701837,
+      "f1_median": 0.12048192771084336,
+      "rouge_l_mean": 0.12995257281490802,
+      "ttft_seconds_mean": 7.4153707475336486,
+      "ttft_seconds_median": 7.419003874994814,
+      "f1_zero_count": 11,
+      "f1_one_count": 0
+    },
+    "CacheBlend_r0.15": {
+      "n": 43,
+      "f1_mean": 0.1423411958792841,
+      "f1_median": 0.14285714285714285,
+      "rouge_l_mean": 0.15368335572529238,
+      "ttft_seconds_mean": 3.7075635315200617,
+      "ttft_seconds_median": 3.7155176801607013,
+      "f1_zero_count": 5,
+      "f1_one_count": 0
+    },
+    "CacheBlend_r1.00": {
+      "n": 43,
+      "f1_mean": 0.15371004672950989,
+      "f1_median": 0.16494845360824745,
+      "rouge_l_mean": 0.1527845812032324,
+      "ttft_seconds_mean": 7.3962858575504535,
+      "ttft_seconds_median": 7.393322006799281,
+      "f1_zero_count": 3,
+      "f1_one_count": 0
+    }
+  },
+  "comparisons": {
+    "cb_r0.15_minus_full_reuse": 0.029874209292265724,
+    "cb_r0.15_minus_full_recompute": -0.011670874408063303,
+    "full_reuse_minus_full_recompute": -0.04154508370032903,
+    "cb_r1.00_minus_full_recompute": -0.0003020235578375108,
+    "cb_r0.00_minus_full_reuse": 0.0
+  },
+  "ci_low_cb_vs_reuse": -0.0020380730208824503,
+  "ci_high_cb_vs_reuse": 0.06043630061595844,
+  "n_paired": 43,
+  "failure_subset": {
+    "n_failure_examples": 23,
+    "per_method": {
+      "FullRecompute": {
+        "n": 23,
+        "f1_mean": 0.18560213822807797
+      },
+      "FullReuse": {
+        "n": 23,
+        "f1_mean": 0.06121536661526813
+      },
+      "CacheBlend_r0.00": {
+        "n": 23,
+        "f1_mean": 0.06121536661526813
+      },
+      "CacheBlend_r0.15": {
+        "n": 23,
+        "f1_mean": 0.1367972630177409
+      },
+      "CacheBlend_r1.00": {
+        "n": 23,
+        "f1_mean": 0.1850374854895122
+      }
+    }
+  },
+  "prompt_length_buckets": [
+    {
+      "range_tokens": "32000-64000",
+      "n_examples": 43,
+      "per_method": {
+        "FullRecompute": {
+          "f1_mean": 0.1540120702873474,
+          "ttft_seconds_mean": 7.201511413573699
+        },
+        "FullReuse": {
+          "f1_mean": 0.11246698658701837,
+          "ttft_seconds_mean": 7.411786590248
+        },
+        "CacheBlend_r0.00": {
+          "f1_mean": 0.11246698658701837,
+          "ttft_seconds_mean": 7.4153707475336486
+        },
+        "CacheBlend_r0.15": {
+          "f1_mean": 0.1423411958792841,
+          "ttft_seconds_mean": 3.7075635315200617
+        },
+        "CacheBlend_r1.00": {
+          "f1_mean": 0.15371004672950989,
+          "ttft_seconds_mean": 7.3962858575504535
+        }
+      }
+    }
+  ],
+  "cache_diagnostics": {
+    "examples_with_question_cache_hit": 0,
+    "note": "0 expected. >0 indicates experimental-design warning (real question cached)."
+  },
+  "hkvd_boundary_enrichment": {
+    "pm1": {
+      "hkvd_fraction_in_window": 0.002343387144445539,
+      "all_fraction_in_window": 0.0007488893322060412,
+      "enrichment_ratio": 3.1291501209431103,
+      "n_examples": 43,
+      "per_example_pct_median": 0.002420574886535552
+    },
+    "pm3": {
+      "hkvd_fraction_in_window": 0.005028078422541555,
+      "all_fraction_in_window": 0.001747408441814096,
+      "enrichment_ratio": 2.877448856388485,
+      "n_examples": 43,
+      "per_example_pct_median": 0.004993191103041307
+    },
+    "pm8": {
+      "hkvd_fraction_in_window": 0.010833767293915638,
+      "all_fraction_in_window": 0.004243706215834233,
+      "enrichment_ratio": 2.5529022846804024,
+      "n_examples": 43,
+      "per_example_pct_median": 0.010742926312604024
+    }
+  }
+}

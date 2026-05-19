@@ -48,6 +48,7 @@ class LayerwiseModel:
         model_name: str,
         dtype: str = "float16",
         device: Optional[str] = None,
+        attn_implementation: str = "eager",
     ):
         torch_dtype = _DTYPE_MAP[dtype]
         self.device = torch.device(device) if device else (
@@ -56,12 +57,15 @@ class LayerwiseModel:
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        # eager attention is mandatory: flash/sdpa kernels lose bit-exactness vs the
-        # decoder-layer path we replicate manually, and break logit equality checks.
+        # Default attn_implementation is "eager" (bit-exact for Phase 0-7 logit checks).
+        # For long-context runs (Loong), pass "flash_attention_2" to fit 50k+ tokens in
+        # 24-48GB GPUs. fuse_selective_lmc_parity manually calls eager_attention_forward
+        # for sparse layers (check_layer+), so the configured impl only affects the
+        # full-forward layers (0..check_layer-1) — flash/eager mix is safe.
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch_dtype,
-            attn_implementation="eager",
+            attn_implementation=attn_implementation,
             low_cpu_mem_usage=True,
         ).to(self.device).eval()
 

@@ -213,11 +213,39 @@ v4 구현 초기에 hook-based 메커니즘 (HF 친화적) 채택. 'K/V 만 merg
 **v5 반영**:
 fuse_selective_lmc_parity 신규 추가 (fusor.py:248+). HF DecoderLayer 의 sub-module 을 manual 호출하여 check_layer 부터 Q[top]/residual[top] sparse slice + sparse Q × full mixed K/V eager_attention. past_key_values 는 full-length 유지 (decode 호환). CPU 단위 테스트 8/8 PASS. v5 에서는 처음부터 sparse-forward 디자인.
 
+
+## L44 — HKVD 토큰이 chunk boundary 에 집중 (3.1-3.4x enrichment) (2026-05-19, Phase 7)
+
+**카테고리**: 알고리즘 관찰
+
+**증상**:
+Loong cache-then-reverse 실험 (Llama-3.1-8B, 43 examples, 4k×11 docs reversed) 에서 HKVD selected token 의 nearest chunk boundary distance 분석: ±1 token enrichment 3.13x, ±3 2.88x, ±8 2.55x, ±32 2.12x (vs uniform random).
+
+**근본 원인**:
+Chunk 경계 위치 토큰 의 hidden_state 가 인접 chunk 와의 cross-attention 영향을 가장 크게 받음 — 그 결과 fresh K (cross-chunk attention 후) 와 cached K (chunk-local) 의 deviation 이 boundary 에서 maximum. HKVD 가 squared L2 deviation top-K 를 선정하므로 자연스럽게 boundary 토큰들이 다수 선택.
+
+**v5 반영**:
+v5 에서 (a) boundary-aware schedule (명시적 boundary token forced-recompute + 나머지 HKVD), (b) 더 작은 ratio 로도 boundary 만 우선 처리 시 quality 유지 가능 검증, (c) Loong-style 적대적 시나리오 (역순) 와 협조적 시나리오 (원순) 의 enrichment 비교 — 의 motivation.
+
+
+## L45 — HF 4.49 SDPA path + DynamicCache 의 causal_mask None + K+1 padding (2026-05-19, Phase 7)
+
+**카테고리**: Long context infrastructure
+
+**증상**:
+Loong 32k+ token Llama 실행 시 OOM (eager attn 큰 score matrix) → SDPA 전환. (a) HF MistralModel._update_causal_mask 가 SDPA/Flash 일 때 None 반환 (SDPA 가 내부 causal 처리), 우리 sparse layer 의 eager_attention_forward (또는 SDPA 직접 호출) 는 explicit mask 필요. (b) DynamicCache 사용 시 mask K 차원 +1 future slot 패딩 (L38) — SDPA 는 exact (Q,K) match 요구하므로 slice 필요.
+
+**근본 원인**:
+HF 의 통합 model.forward 가 attn_impl 별로 mask 형태 자동 분기. 우리는 model.forward 를 우회 (manual sub-module 호출) 하므로 분기 결과 (None) 와 padding (+1) 을 명시적 처리 필요.
+
+**v5 반영**:
+fusor.py 의 fuse_selective_lmc_parity 에 (a) causal_mask is None 시 수동 (1,1,S,S) -inf-above-diagonal mask 생성, (b) sparse_causal_mask 슬라이싱 시 [:, :, top_indices, :total_seq] 로 K dim 명시 slice. CPU 8/8 test PASS + Loong A100 OOM 없이 통과.
+
 <!-- LESSONS_END -->
 
 ---
 
 ## 누적 통계
 
-- 총 lessons: 13
-- 마지막 업데이트: 2026-05-18
+- 총 lessons: 15
+- 마지막 업데이트: 2026-05-19

@@ -14,7 +14,7 @@ from cacheblend.model import LayerwiseModel
 from cacheblend.kv_store import KVStore
 from cacheblend.chunker import Chunk, chunk_texts, fused_input_ids
 from cacheblend.rope import apply_rope_shift
-from cacheblend.precompute import precompute_chunk_kv
+from cacheblend.precompute import precompute_chunk_kv, precompute_from_cache_prompt
 from cacheblend.fusor import (
     fuse_full_recompute,
     fuse_full_reuse,
@@ -53,6 +53,7 @@ __all__ = [
     "fused_input_ids",
     "apply_rope_shift",
     "precompute_chunk_kv",
+    "precompute_from_cache_prompt",
     "fuse_full_recompute",
     "fuse_full_reuse",
     "fuse_selective",
